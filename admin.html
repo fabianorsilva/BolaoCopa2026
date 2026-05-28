@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="Area administrativa para atualizar placares do Bola da Copa 2026." />
+    <title>Admin - Bola da Copa 2026</title>
+    <link rel="stylesheet" href="styles.css?v=11" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="topbar">
+        <div class="brand">
+          <span class="trophy-logo" aria-hidden="true">
+            <svg viewBox="0 0 64 64" role="img">
+              <path d="M20 10h24v10c0 10-5 17-12 20-7-3-12-10-12-20V10Z" />
+              <path d="M20 16H9c0 10 5 17 14 18M44 16h11c0 10-5 17-14 18" />
+              <path d="M32 40v8M23 54h18M20 60h24" />
+            </svg>
+          </span>
+          <div>
+            <p class="eyebrow">Area administrativa</p>
+            <h1>Atualizar placares</h1>
+          </div>
+        </div>
+        <a class="secondary-link" href="index.html">Ver bolao</a>
+      </header>
+
+      <main class="admin-shell">
+        <form class="auth-card admin-access" id="adminLoginForm">
+          <div>
+            <p class="eyebrow">Acesso restrito</p>
+            <h2>Entrar como administrador</h2>
+          </div>
+          <label>
+            Codigo do administrador
+            <input id="adminCode" type="password" placeholder="Codigo admin" autocomplete="off" />
+          </label>
+          <button class="primary-button" type="submit">Liberar resultados</button>
+          <small>Codigo do prototipo: ADMIN2026</small>
+        </form>
+
+        <section class="panel admin-page-panel hidden" id="adminPanel">
+          <div class="toolbar">
+            <label>
+              Data
+              <select id="adminDaySelect"></select>
+            </label>
+            <label>
+              Fase
+              <select id="adminRoundSelect"></select>
+            </label>
+          </div>
+          <div class="match-list" id="adminResultList"></div>
+        </section>
+      </main>
+    </div>
+
+    <script src="data.js?v=11"></script>
+    <script src="admin.js?v=11"></script>
+  </body>
+</html>

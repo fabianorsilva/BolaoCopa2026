@@ -1,0 +1,205 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="Bolao da Copa do Mundo 2026 com palpites, ranking e area administrativa." />
+    <meta property="og:title" content="Bola da Copa 2026" />
+    <meta property="og:description" content="Palpites, ranking e resultados da Copa do Mundo 2026." />
+    <meta property="og:type" content="website" />
+    <title>Bola da Copa 2026</title>
+    <link rel="stylesheet" href="styles.css?v=11" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="topbar">
+        <div class="brand">
+          <span class="trophy-logo" aria-hidden="true">
+            <svg viewBox="0 0 64 64" role="img">
+              <path d="M20 10h24v10c0 10-5 17-12 20-7-3-12-10-12-20V10Z" />
+              <path d="M20 16H9c0 10 5 17 14 18M44 16h11c0 10-5 17-14 18" />
+              <path d="M32 40v8M23 54h18M20 60h24" />
+            </svg>
+          </span>
+          <div>
+            <p class="eyebrow">Copa do Mundo 2026</p>
+            <h1>Bola da Copa 2026</h1>
+          </div>
+        </div>
+        <div class="top-actions" id="topActions">
+          <span class="user-chip" id="currentUserChip">Sem cadastro</span>
+          <button class="secondary-button" id="logoutButton" type="button">Trocar</button>
+          <button class="icon-button" id="resetButton" type="button" aria-label="Restaurar dados" title="Restaurar dados">
+            <span aria-hidden="true">R</span>
+          </button>
+          <button class="primary-button" id="exportButton" type="button">Exportar</button>
+        </div>
+      </header>
+
+      <section class="auth-panel" id="authPanel">
+        <div class="auth-layout">
+          <section class="auth-intro">
+            <span class="trophy-logo large" aria-hidden="true">
+              <svg viewBox="0 0 64 64" role="img">
+                <path d="M20 10h24v10c0 10-5 17-12 20-7-3-12-10-12-20V10Z" />
+                <path d="M20 16H9c0 10 5 17 14 18M44 16h11c0 10-5 17-14 18" />
+                <path d="M32 40v8M23 54h18M20 60h24" />
+              </svg>
+            </span>
+            <p class="eyebrow">Grupo fechado</p>
+            <h2>Bola da Copa 2026</h2>
+            <p class="intro-copy">Entre com seu e-mail, registre os palpites e acompanhe sua pontuacao jogo a jogo.</p>
+            <div class="auth-stats">
+              <article><strong>104</strong><span>jogos</span></article>
+              <article><strong>48</strong><span>selecoes</span></article>
+              <article><strong>5</strong><span>pts por exato</span></article>
+            </div>
+          </section>
+
+          <form class="auth-card" id="authForm">
+            <div>
+              <p class="eyebrow">Acesso</p>
+              <h2>Entrar no bolao</h2>
+            </div>
+            <div class="auth-fields">
+              <label>
+                Nome
+                <input id="signupName" type="text" placeholder="Seu nome" maxlength="28" autocomplete="name" />
+              </label>
+              <label>
+                E-mail
+                <input id="signupEmail" type="email" placeholder="voce@email.com" maxlength="80" autocomplete="email" />
+              </label>
+              <label>
+                Codigo do grupo
+                <input id="signupCode" type="password" placeholder="Codigo do grupo" autocomplete="off" />
+              </label>
+            </div>
+            <button class="primary-button" type="submit">Entrar no bolao</button>
+            <small>Codigo inicial do prototipo: COPA2026</small>
+          </form>
+          </div>
+      </section>
+
+      <main class="dashboard" id="dashboard">
+        <section class="panel leaderboard-panel">
+          <div class="panel-heading compact">
+            <div>
+              <p class="eyebrow">Classificação</p>
+              <h2>Ranking</h2>
+            </div>
+            <span class="pill">ao vivo</span>
+          </div>
+          <ol class="leaderboard" id="leaderboard"></ol>
+        </section>
+
+        <section class="panel today-panel">
+          <div class="panel-heading compact">
+            <div>
+              <p class="eyebrow">Agenda</p>
+              <h2>Jogos do dia</h2>
+            </div>
+            <label class="compact-label">
+              Data
+              <select id="matchDaySelect"></select>
+            </label>
+          </div>
+          <div class="daily-match-list" id="dailyMatchList"></div>
+        </section>
+
+        <section class="panel groups-panel">
+          <div class="panel-heading compact">
+            <div>
+              <p class="eyebrow">Fase de grupos</p>
+              <h2>Grupos da Copa</h2>
+            </div>
+            <label class="compact-label">
+              Grupo
+              <select id="groupSelect"></select>
+            </label>
+          </div>
+          <div class="group-team-list" id="groupTeamList"></div>
+        </section>
+
+        <section class="panel tabs-panel">
+          <div class="tab-list" role="tablist" aria-label="Areas do bolao">
+            <button class="tab active" type="button" data-tab="minha-pontuacao">Minha pontuacao</button>
+            <button class="tab" type="button" data-tab="palpites">Palpites</button>
+            <button class="tab" type="button" data-tab="jogos">Tabela</button>
+            <button class="tab" type="button" data-tab="participantes">Participantes</button>
+          </div>
+
+          <section class="tab-page active" id="tab-minha-pontuacao">
+            <div class="toolbar split">
+              <div>
+                <p class="eyebrow">Seu desempenho</p>
+                <h2 id="myScoreTitle">Minha pontuacao</h2>
+              </div>
+              <strong class="score-badge" id="myScoreTotal">0 pts</strong>
+            </div>
+            <div class="score-breakdown" id="myScoreBreakdown"></div>
+          </section>
+
+          <section class="tab-page" id="tab-palpites">
+            <div class="toolbar">
+              <label>
+                Palpites de
+                <select id="playerSelect"></select>
+              </label>
+              <label>
+                Fase
+                <select id="roundFilter"></select>
+              </label>
+            </div>
+            <div class="match-list" id="guessList"></div>
+          </section>
+
+          <section class="tab-page" id="tab-jogos">
+            <div class="toolbar split">
+              <div>
+                <p class="eyebrow">104 jogos</p>
+                <h2>Tabela completa</h2>
+              </div>
+              <small>Horarios em ET</small>
+            </div>
+            <div class="match-list" id="resultList"></div>
+          </section>
+
+          <section class="tab-page" id="tab-participantes">
+            <form class="participant-form" id="participantForm">
+              <label>
+                Convidar participante
+                <input id="participantName" type="text" placeholder="Nome" maxlength="28" />
+              </label>
+              <button class="primary-button" type="submit">Adicionar</button>
+            </form>
+            <div class="participant-grid" id="participantGrid"></div>
+          </section>
+
+        </section>
+      </main>
+    </div>
+
+    <template id="matchGuessTemplate">
+      <article class="match-card">
+        <div class="match-meta">
+          <span class="pill"></span>
+          <small></small>
+        </div>
+        <div class="teams-row">
+          <strong class="home-team"></strong>
+          <div class="score-inputs">
+            <input class="home-score" type="number" min="0" max="20" inputmode="numeric" aria-label="Gols do time mandante" />
+            <span>x</span>
+            <input class="away-score" type="number" min="0" max="20" inputmode="numeric" aria-label="Gols do time visitante" />
+          </div>
+          <strong class="away-team"></strong>
+        </div>
+        <div class="match-footer"></div>
+      </article>
+    </template>
+
+    <script src="data.js?v=11"></script>
+    <script src="app.js?v=11"></script>
+  </body>
+</html>
