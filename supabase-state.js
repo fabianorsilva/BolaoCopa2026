@@ -13,8 +13,8 @@
       window.supabase &&
       config.url &&
       config.anonKey &&
-      !config.url.includes("COLE_AQUI") &&
-      !config.anonKey.includes("COLE_AQUI")
+      !config.url.includes("https://zmnwjzzefwmvtflpfkoi.supabase.co") &&
+      !config.anonKey.includes("eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InptbndqenplZndtdnRmbHBma29pIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwNDAxMjUsImV4cCI6MjA5NTYxNjEyNX0.TYSQOQycJTRj5YBy16ywidSsl5tUQ0Q4gbX2DxrIrqw")
     );
   }
 
