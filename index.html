@@ -3,12 +3,12 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="description" content="Bolao da Copa do Mundo 2026 com palpites, ranking e area administrativa." />
-    <meta property="og:title" content="Bola da Copa 2026" />
+    <meta name="description" content="Bolao da Copa 2026 com palpites, ranking e area administrativa." />
+    <meta property="og:title" content="Bolao Copa 2026" />
     <meta property="og:description" content="Palpites, ranking e resultados da Copa do Mundo 2026." />
     <meta property="og:type" content="website" />
-    <title>Bolão da Copa 2026</title>
-    <link rel="stylesheet" href="styles.css?v=11" />
+    <title>Bolao Copa 2026</title>
+    <link rel="stylesheet" href="styles.css?v=16" />
   </head>
   <body>
     <div class="app-shell">
@@ -23,7 +23,7 @@
           </span>
           <div>
             <p class="eyebrow">Copa do Mundo 2026</p>
-            <h1>Bolão da Copa 2026</h1>
+            <h1>Bolao Copa 2026</h1>
           </div>
         </div>
         <div class="top-actions" id="topActions">
@@ -47,12 +47,12 @@
               </svg>
             </span>
             <p class="eyebrow">Grupo fechado</p>
-            <h2>Bolão da Copa 2026</h2>
-            <p class="intro-copy">Entre com seu e-mail, registre os palpites e acompanhe sua pontuação jogo a jogo.</p>
+            <h2>Bolao Copa 2026</h2>
+            <p class="intro-copy">Informe seu nome, e-mail e codigo do grupo para registrar seus palpites e acompanhar sua pontuacao.</p>
             <div class="auth-stats">
               <article><strong>104</strong><span>jogos</span></article>
               <article><strong>48</strong><span>selecoes</span></article>
-              <article><strong>5</strong><span>pts por placar exato</span></article>
+              <article><strong>5</strong><span>pontos por placar exato</span></article>
             </div>
           </section>
 
@@ -68,15 +68,15 @@
               </label>
               <label>
                 E-mail
-                <input id="signupEmail" type="email" placeholder="voce@email.com" maxlength="80" autocomplete="email" />
+                <input id="signupEmail" type="email" placeholder="seuemail@exemplo.com" maxlength="80" autocomplete="email" />
               </label>
               <label>
-                Codigo do grupo
-                <input id="signupCode" type="password" placeholder="Codigo do grupo" autocomplete="off" />
+                Codigo
+                <input id="signupCode" type="password" placeholder="Digite o codigo recebido" autocomplete="off" />
               </label>
             </div>
             <button class="primary-button" type="submit">Entrar no bolao</button>
-            <small>Codigo inicial do prototipo: COPA2026</small>
+            <small>O codigo sera enviado previamente aos participantes.</small>
           </form>
           </div>
       </section>
@@ -199,7 +199,10 @@
       </article>
     </template>
 
-    <script src="data.js?v=11"></script>
-    <script src="app.js?v=11"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="supabase-config.js?v=16"></script>
+    <script src="supabase-state.js?v=16"></script>
+    <script src="data.js?v=16"></script>
+    <script src="app.js?v=16"></script>
   </body>
 </html>

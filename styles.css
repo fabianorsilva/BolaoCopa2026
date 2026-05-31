@@ -191,6 +191,64 @@ button {
   min-height: 620px;
 }
 
+.admin-dashboard {
+  display: grid;
+  grid-template-columns: minmax(280px, 0.82fr) minmax(520px, 1.4fr);
+  gap: 18px;
+  align-items: start;
+}
+
+.admin-participants-panel {
+  min-height: 620px;
+}
+
+.admin-note {
+  margin: -6px 0 14px;
+  color: var(--muted);
+  font-size: 0.82rem;
+  line-height: 1.45;
+}
+
+.admin-participant-list {
+  display: grid;
+  gap: 10px;
+  max-height: 480px;
+  overflow: auto;
+  padding-right: 4px;
+}
+
+.admin-participant-card {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.07);
+}
+
+.admin-participant-card strong,
+.admin-participant-card small {
+  display: block;
+}
+
+.admin-participant-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.admin-participant-stats span {
+  width: fit-content;
+  min-height: 24px;
+  padding: 4px 8px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--text);
+  background: rgba(0, 0, 0, 0.18);
+  font-size: 0.76rem;
+  font-weight: 850;
+}
+
 .secondary-link {
   display: inline-flex;
   align-items: center;
@@ -1112,6 +1170,7 @@ select:focus {
 
   .dashboard,
   .participant-grid,
+  .admin-dashboard,
   .auth-layout,
   .auth-fields {
     grid-template-columns: 1fr;

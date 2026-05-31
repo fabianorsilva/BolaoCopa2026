@@ -3,9 +3,9 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="description" content="Area administrativa para atualizar placares do Bola da Copa 2026." />
-    <title>Admin - Bola da Copa 2026</title>
-    <link rel="stylesheet" href="styles.css?v=11" />
+    <meta name="description" content="Area administrativa para atualizar placares do Bolao Copa 2026." />
+    <title>Admin - Bolao Copa 2026</title>
+    <link rel="stylesheet" href="styles.css?v=16" />
   </head>
   <body>
     <div class="app-shell">
@@ -40,23 +40,46 @@
           <small>Codigo do prototipo: ADMIN2026</small>
         </form>
 
-        <section class="panel admin-page-panel hidden" id="adminPanel">
-          <div class="toolbar">
-            <label>
-              Data
-              <select id="adminDaySelect"></select>
-            </label>
-            <label>
-              Fase
-              <select id="adminRoundSelect"></select>
-            </label>
-          </div>
-          <div class="match-list" id="adminResultList"></div>
+        <section class="admin-dashboard hidden" id="adminPanel">
+          <section class="panel admin-participants-panel">
+            <div class="panel-heading compact">
+              <div>
+                <p class="eyebrow">Grupo fechado</p>
+                <h2>Participantes</h2>
+              </div>
+              <strong class="score-badge" id="adminParticipantTotal">0</strong>
+            </div>
+            <p class="admin-note">Nesta versao estatica, estes dados sao lidos do armazenamento deste navegador.</p>
+            <div class="admin-participant-list" id="adminParticipantList"></div>
+          </section>
+
+          <section class="panel admin-page-panel">
+            <div class="panel-heading compact">
+              <div>
+                <p class="eyebrow">Resultados oficiais</p>
+                <h2>Atualizar placares</h2>
+              </div>
+            </div>
+            <div class="toolbar">
+              <label>
+                Data
+                <select id="adminDaySelect"></select>
+              </label>
+              <label>
+                Fase
+                <select id="adminRoundSelect"></select>
+              </label>
+            </div>
+            <div class="match-list" id="adminResultList"></div>
+          </section>
         </section>
       </main>
     </div>
 
-    <script src="data.js?v=11"></script>
-    <script src="admin.js?v=11"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="supabase-config.js?v=16"></script>
+    <script src="supabase-state.js?v=16"></script>
+    <script src="data.js?v=16"></script>
+    <script src="admin.js?v=16"></script>
   </body>
 </html>

@@ -55,11 +55,13 @@ const TEAM_NAME_PT = {
 const state = loadState();
 const els = {};
 
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener("DOMContentLoaded", async () => {
   Object.assign(els, {
     adminLoginForm: document.querySelector("#adminLoginForm"),
     adminCode: document.querySelector("#adminCode"),
     adminPanel: document.querySelector("#adminPanel"),
+    adminParticipantTotal: document.querySelector("#adminParticipantTotal"),
+    adminParticipantList: document.querySelector("#adminParticipantList"),
     adminDaySelect: document.querySelector("#adminDaySelect"),
     adminRoundSelect: document.querySelector("#adminRoundSelect"),
     adminResultList: document.querySelector("#adminResultList")
@@ -71,7 +73,21 @@ document.addEventListener("DOMContentLoaded", () => {
   });
   els.adminDaySelect.addEventListener("change", renderAdminResults);
   els.adminRoundSelect.addEventListener("change", renderAdminResults);
+  await hydrateSharedState();
 });
+
+async function hydrateSharedState() {
+  if (!window.BolaoSupabase?.isConfigured()) return;
+
+  try {
+    const sharedState = await window.BolaoSupabase.loadSharedState(state, mergeMatches);
+    Object.assign(state, sharedState);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  } catch (error) {
+    console.error(error);
+    showToast("Nao foi possivel carregar dados compartilhados. Usando dados locais.");
+  }
+}
 
 function loadState() {
   const saved = localStorage.getItem(STORAGE_KEY);
@@ -102,6 +118,12 @@ function mergeMatches(savedMatches = []) {
 
 function saveState() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  if (window.BolaoSupabase?.isConfigured()) {
+    window.BolaoSupabase.saveSharedState(state).catch((error) => {
+      console.error(error);
+      showToast("Nao foi possivel sincronizar com o Supabase.");
+    });
+  }
 }
 
 function unlockAdmin() {
@@ -113,8 +135,28 @@ function unlockAdmin() {
   els.adminLoginForm.classList.add("hidden");
   els.adminPanel.classList.remove("hidden");
   populateSelectors();
+  renderParticipants();
   renderAdminResults();
   showToast("Area de resultados liberada.");
+}
+
+function renderParticipants() {
+  const participants = getParticipantSummaries();
+  els.adminParticipantTotal.textContent = participants.length;
+  els.adminParticipantList.innerHTML = participants.length
+    ? participants.map((participant) => `
+      <article class="admin-participant-card">
+        <div>
+          <strong>${escapeHtml(participant.name)}</strong>
+          <small>${escapeHtml(participant.email || "sem e-mail")}</small>
+        </div>
+        <div class="admin-participant-stats">
+          <span>${participant.points} pts</span>
+          <span>${participant.filledGuesses}/${state.matches.length} palpites</span>
+        </div>
+      </article>
+    `).join("")
+    : `<article class="admin-participant-card empty-state">Nenhum participante cadastrado neste navegador.</article>`;
 }
 
 function populateSelectors() {
@@ -178,8 +220,47 @@ function saveAdminResult(matchId, home, away, button) {
 
   match.result = { home: normalizeScore(home), away: normalizeScore(away) };
   saveState();
+  renderParticipants();
   markButtonSaved(button);
   showToast("Resultado salvo. A pagina do bolao ja pode ser atualizada.");
+}
+
+function getParticipantSummaries() {
+  return state.participants
+    .map((participant) => {
+      const guesses = state.guesses[participant.id] || {};
+      const filledGuesses = state.matches.filter((match) => isCompleteScore(guesses[match.id])).length;
+      return {
+        ...participant,
+        points: getParticipantPoints(participant.id),
+        filledGuesses
+      };
+    })
+    .sort((a, b) => b.points - a.points || a.name.localeCompare(b.name));
+}
+
+function getParticipantPoints(participantId) {
+  return state.matches.reduce((total, match) => {
+    if (!isCompleteScore(match.result)) return total;
+    return total + scoreGuess(state.guesses[participantId]?.[match.id], match.result);
+  }, 0);
+}
+
+function scoreGuess(guess, result) {
+  if (!isCompleteScore(guess) || !isCompleteScore(result)) return 0;
+  if (Number(guess.home) === Number(result.home) && Number(guess.away) === Number(result.away)) return 5;
+  if (getOutcome(guess) === getOutcome(result)) return 2;
+  return 0;
+}
+
+function isCompleteScore(score) {
+  return score && score.home !== "" && score.away !== "" && score.home !== null && score.away !== null;
+}
+
+function getOutcome(score) {
+  if (Number(score.home) > Number(score.away)) return "home";
+  if (Number(score.home) < Number(score.away)) return "away";
+  return "draw";
 }
 
 function markButtonSaved(button) {
@@ -224,4 +305,13 @@ function showToast(message) {
   toast.textContent = message;
   document.body.append(toast);
   window.setTimeout(() => toast.remove(), 2600);
+}
+
+function escapeHtml(value) {
+  return String(value)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
 }

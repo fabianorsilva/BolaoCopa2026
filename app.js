@@ -1,5 +1,5 @@
 const STORAGE_KEY = "bolao-copa-2026-v2";
-const ACCESS_CODE = "COPA2026";
+const ACCESS_CODE = "UNIDADE4";
 const FLAG_BY_TEAM = {
   "Algeria": { code: "dz", label: "DZ" },
   "Argentina": { code: "ar", label: "AR" },
@@ -112,12 +112,26 @@ const seedState = {
 const state = loadState();
 const els = {};
 
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener("DOMContentLoaded", async () => {
   bindElements();
   bindEvents();
+  await hydrateSharedState();
   ensureStateShape();
   render();
 });
+
+async function hydrateSharedState() {
+  if (!window.BolaoSupabase?.isConfigured()) return;
+
+  try {
+    const sharedState = await window.BolaoSupabase.loadSharedState(state, mergeMatches);
+    Object.assign(state, sharedState);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  } catch (error) {
+    console.error(error);
+    showToast("Nao foi possivel carregar dados compartilhados. Usando dados locais.");
+  }
+}
 
 function bindElements() {
   Object.assign(els, {
@@ -225,6 +239,12 @@ function mergeMatches(savedMatches = []) {
 
 function saveState() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  if (window.BolaoSupabase?.isConfigured()) {
+    window.BolaoSupabase.saveSharedState(state).catch((error) => {
+      console.error(error);
+      showToast("Nao foi possivel sincronizar com o Supabase.");
+    });
+  }
 }
 
 function ensureStateShape() {
@@ -326,7 +346,7 @@ function renderLeaderboard() {
         <div>
           <strong>${escapeHtml(row.name)}</strong>
           <br />
-          <small>${row.exact} exatos - ${row.trend} tendencias</small>
+          <small>${row.exact} placares exatos - ${row.trend} tendencias corretas</small>
         </div>
         <span class="points">${row.points} pts</span>
       </li>
@@ -471,7 +491,7 @@ function renderMyScore() {
     <div class="score-summary">
       <article><strong>${total}</strong><small>pontos totais</small></article>
       <article><strong>${exact}</strong><small>placares exatos</small></article>
-      <article><strong>${trend}</strong><small>tendencias certas</small></article>
+      <article><strong>${trend}</strong><small>tendencias corretas</small></article>
       <article><strong>${settledMatches.length}</strong><small>jogos pontuados</small></article>
     </div>
     <div class="score-list">

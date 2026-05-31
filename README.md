@@ -1,4 +1,4 @@
-# Bola da Copa 2026
+# Bolao Copa 2026
 
 Aplicativo estatico de bolao para a Copa do Mundo 2026, pronto para publicar no GitHub Pages.
 
@@ -9,7 +9,7 @@ Aplicativo estatico de bolao para a Copa do Mundo 2026, pronto para publicar no 
 
 Codigos do prototipo:
 
-- Codigo do grupo: `COPA2026`
+- Codigo do grupo: `Unidade4`
 - Codigo admin: `ADMIN2026`
 
 ## Como publicar no GitHub Pages
@@ -32,9 +32,37 @@ https://seu-usuario.github.io/nome-do-repositorio/
 
 ## Observacao importante
 
-Esta versao usa `localStorage`, ou seja, os dados ficam salvos apenas no navegador de cada pessoa. No GitHub Pages, os palpites e resultados nao ficam compartilhados entre usuarios.
+Esta versao pode rodar de dois jeitos:
 
-Para um bolao real com varias pessoas vendo o mesmo ranking, o proximo passo e conectar o app a um banco de dados, como Supabase ou Firebase.
+- Sem Supabase configurado: usa `localStorage`, bom para testes locais.
+- Com Supabase configurado: participantes, palpites e resultados ficam compartilhados.
+
+## Configurar Supabase
+
+1. Acesse https://supabase.com e crie um projeto.
+2. No painel do projeto, abra `SQL Editor`.
+3. Copie e execute o conteudo de `supabase-schema.sql`.
+4. Va em `Project Settings` > `API`.
+5. Copie:
+   - `Project URL`
+   - `anon public key`
+6. Abra `supabase-config.js`.
+7. Substitua:
+
+```js
+url: "COLE_AQUI_A_PROJECT_URL",
+anonKey: "COLE_AQUI_A_ANON_PUBLIC_KEY"
+```
+
+pelos dados do seu projeto.
+
+8. Suba novamente os arquivos para o GitHub Pages.
+
+Quando esses valores estiverem preenchidos, o app passa a sincronizar os dados com Supabase.
+
+## Importante sobre seguranca
+
+Esta configuracao e um MVP para grupo fechado com codigo. Ela usa a chave publica `anon`, que e normal em apps front-end com Supabase. Para mais seguranca em uma versao final, o ideal e adicionar autenticacao real e regras RLS por usuario.
 
 ## Estrutura
 
@@ -48,4 +76,3 @@ Para um bolao real com varias pessoas vendo o mesmo ranking, o proximo passo e c
 ├── styles.css
 └── assets/
 ```
-
