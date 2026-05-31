@@ -128,8 +128,8 @@ async function hydrateSharedState() {
     Object.assign(state, sharedState);
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
   } catch (error) {
-    console.error(error);
-    showToast("Nao foi possivel carregar dados compartilhados. Usando dados locais.");
+    const detail = window.BolaoSupabase.describeError(error);
+    showToast(`Falha ao carregar Supabase: ${detail}`);
   }
 }
 
@@ -241,8 +241,8 @@ function saveState() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
   if (window.BolaoSupabase?.isConfigured()) {
     window.BolaoSupabase.saveSharedState(state).catch((error) => {
-      console.error(error);
-      showToast("Nao foi possivel sincronizar com o Supabase.");
+      const detail = window.BolaoSupabase.describeError(error);
+      showToast(`Nao foi possivel sincronizar: ${detail}`);
     });
   }
 }
@@ -937,5 +937,5 @@ function showToast(message) {
   toast.className = "toast";
   toast.textContent = message;
   document.body.append(toast);
-  window.setTimeout(() => toast.remove(), 2600);
+  window.setTimeout(() => toast.remove(), message.length > 80 ? 8000 : 2600);
 }
