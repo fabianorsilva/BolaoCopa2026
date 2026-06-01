@@ -4,5 +4,5 @@
 // - anon public key
 window.BOLAO_SUPABASE_CONFIG = {
   url: "https://zmnwjzzefwmvtflpfkoi.supabase.co",
-  anonKey: "sb_publishable_aWahlisIb8OUmRNJoERagA_9MmOC0al"
+  anonKey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InptbndqenplZndtdnRmbHBma29pIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwNDAxMjUsImV4cCI6MjA5NTYxNjEyNX0.TYSQOQycJTRj5YBy16ywidSsl5tUQ0Q4gbX2DxrIrqw"
 };
