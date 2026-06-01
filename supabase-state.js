@@ -12,14 +12,28 @@
   }
 
   function isConfigured() {
+    return getConfigStatus().ok;
+  }
+
+  function getConfigStatus() {
     const config = getConfig();
-    return Boolean(
-      window.supabase &&
-      config.url &&
-      config.anonKey &&
-      !config.url.includes("COLE_AQUI") &&
-      !config.anonKey.includes("COLE_AQUI")
-    );
+    if (!window.supabase) {
+      return { ok: false, message: "A biblioteca do Supabase não carregou. Verifique a conexão com a internet ou o script CDN." };
+    }
+
+    if (!config.url || config.url.includes("COLE_AQUI")) {
+      return { ok: false, message: "A Project URL não foi configurada em supabase-config.js." };
+    }
+
+    if (!config.anonKey || config.anonKey.includes("COLE_AQUI")) {
+      return { ok: false, message: "A chave pública do Supabase não foi configurada em supabase-config.js." };
+    }
+
+    if (!/^https:\/\/.+\.supabase\.co\/?$/.test(config.url)) {
+      return { ok: false, message: "A Project URL parece inválida. Ela deve ser parecida com https://xxxx.supabase.co." };
+    }
+
+    return { ok: true, message: "Supabase configurado." };
   }
 
   function getClient() {
@@ -214,6 +228,7 @@
 
   window.BolaoSupabase = {
     isConfigured,
+    getConfigStatus,
     describeError,
     getLastError: () => lastError,
     testConnection,

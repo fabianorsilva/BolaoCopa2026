@@ -185,7 +185,8 @@ function bindEvents() {
 
 async function refreshState() {
   if (!window.BolaoSupabase?.isConfigured()) {
-    showAuthMessage("Configure o Supabase para usar cadastros, códigos e palpites entre navegadores.");
+    const status = window.BolaoSupabase?.getConfigStatus?.();
+    showAuthMessage(status?.message || "O arquivo supabase-state.js não carregou corretamente.");
     return;
   }
 
@@ -242,7 +243,8 @@ async function requestRegistration() {
   }
 
   if (!window.BolaoSupabase?.isConfigured()) {
-    showAuthMessage("Supabase não configurado. O cadastro precisa do banco online.");
+    const status = window.BolaoSupabase?.getConfigStatus?.();
+    showAuthMessage(status?.message || "O arquivo supabase-state.js não carregou corretamente.");
     return;
   }
 

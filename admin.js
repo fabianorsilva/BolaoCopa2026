@@ -88,7 +88,8 @@ async function unlockAdmin() {
   }
 
   if (!window.BolaoSupabase?.isConfigured()) {
-    showToast("Configure o Supabase antes de usar o painel administrativo.");
+    const status = window.BolaoSupabase?.getConfigStatus?.();
+    showToast(status?.message || "O arquivo supabase-state.js não carregou corretamente.");
     return;
   }
 
