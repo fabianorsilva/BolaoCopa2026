@@ -1,51 +1,39 @@
-# Bolao Copa 2026
+# Bolão Copa 2026
 
-Aplicativo estatico de bolao para a Copa do Mundo 2026, pronto para publicar no GitHub Pages.
+Aplicativo estático de bolão para a Copa do Mundo 2026, pronto para publicar no GitHub Pages e sincronizar dados pelo Supabase.
 
-## Paginas
+## Páginas
 
-- `index.html`: tela dos participantes.
-- `admin.html`: tela administrativa para atualizar placares.
+- `index.html`: cadastro, login, palpites, ranking e pontuação do participante.
+- `admin.html`: aprovação de cadastros, geração de códigos de acesso e atualização de placares.
 
-Codigos do prototipo:
-
-- Codigo do grupo: `Unidade4`
-- Codigo admin: `ADMIN2026`
-
-## Como publicar no GitHub Pages
-
-1. Crie um repositorio no GitHub.
-2. Envie todos os arquivos desta pasta para a branch `main`.
-3. No GitHub, abra `Settings` > `Pages`.
-4. Em `Build and deployment`, escolha `Deploy from a branch`.
-5. Selecione:
-   - Branch: `main`
-   - Folder: `/root`
-6. Salve.
-7. Acesse a URL gerada pelo GitHub Pages.
-
-Exemplo de URL:
+Código do administrador no protótipo:
 
 ```text
-https://seu-usuario.github.io/nome-do-repositorio/
+ADMIN2026
 ```
 
-## Observacao importante
+Altere esse código no arquivo `admin.js` antes de divulgar o link.
 
-Esta versao pode rodar de dois jeitos:
+## Fluxo do grupo fechado
 
-- Sem Supabase configurado: usa `localStorage`, bom para testes locais.
-- Com Supabase configurado: participantes, palpites e resultados ficam compartilhados.
+1. O participante abre o link do bolão.
+2. Ele solicita cadastro com nome e e-mail.
+3. O administrador entra em `admin.html`.
+4. O administrador aprova o cadastro e copia o código gerado.
+5. O administrador envia esse código para o participante.
+6. O participante entra com e-mail + código e registra seus palpites.
+7. Quando o administrador atualiza resultados, ranking e pontuação são recalculados.
 
 ## Configurar Supabase
 
 1. Acesse https://supabase.com e crie um projeto.
 2. No painel do projeto, abra `SQL Editor`.
-3. Copie e execute o conteudo de `supabase-schema.sql`.
-4. Va em `Project Settings` > `API`.
+3. Copie e execute todo o conteúdo de `supabase-schema.sql`.
+4. Vá em `Project Settings` > `API`.
 5. Copie:
    - `Project URL`
-   - `anon public key`
+   - `anon public key` ou `publishable key`
 6. Abra `supabase-config.js`.
 7. Substitua:
 
@@ -58,21 +46,17 @@ pelos dados do seu projeto.
 
 8. Suba novamente os arquivos para o GitHub Pages.
 
-Quando esses valores estiverem preenchidos, o app passa a sincronizar os dados com Supabase.
+## Publicar no GitHub Pages
 
-## Importante sobre seguranca
+1. Crie um repositório no GitHub.
+2. Envie todos os arquivos desta pasta para a branch `main`.
+3. No GitHub, abra `Settings` > `Pages`.
+4. Em `Build and deployment`, escolha `Deploy from a branch`.
+5. Selecione:
+   - Branch: `main`
+   - Folder: `/root`
+6. Salve e acesse a URL gerada pelo GitHub Pages.
 
-Esta configuracao e um MVP para grupo fechado com codigo. Ela usa a chave publica `anon`, que e normal em apps front-end com Supabase. Para mais seguranca em uma versao final, o ideal e adicionar autenticacao real e regras RLS por usuario.
+## Observação sobre segurança
 
-## Estrutura
-
-```text
-.
-├── index.html
-├── admin.html
-├── app.js
-├── admin.js
-├── data.js
-├── styles.css
-└── assets/
-```
+Este é um MVP para grupo fechado. Como o projeto roda direto no navegador, a chave pública do Supabase fica visível, o que é normal em apps front-end. Para uma versão mais segura, o próximo passo seria usar Supabase Auth ou Edge Functions para proteger ações administrativas no servidor.

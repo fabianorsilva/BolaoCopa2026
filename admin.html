@@ -3,9 +3,9 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="description" content="Area administrativa para atualizar placares do Bolao Copa 2026." />
-    <title>Admin - Bolao Copa 2026</title>
-    <link rel="stylesheet" href="styles.css?v=17" />
+    <meta name="description" content="Área administrativa para aprovar participantes e atualizar placares do Bolão Copa 2026." />
+    <title>Admin - Bolão Copa 2026</title>
+    <link rel="stylesheet" href="styles.css?v=18" />
   </head>
   <body>
     <div class="app-shell">
@@ -19,11 +19,11 @@
             </svg>
           </span>
           <div>
-            <p class="eyebrow">Area administrativa</p>
-            <h1>Atualizar placares</h1>
+            <p class="eyebrow">Área administrativa</p>
+            <h1>Bolão Copa 2026</h1>
           </div>
         </div>
-        <a class="secondary-link" href="index.html">Ver bolao</a>
+        <a class="secondary-link" href="index.html">Ver bolão</a>
       </header>
 
       <main class="admin-shell">
@@ -33,11 +33,11 @@
             <h2>Entrar como administrador</h2>
           </div>
           <label>
-            Codigo do administrador
-            <input id="adminCode" type="password" placeholder="Codigo admin" autocomplete="off" />
+            Código do administrador
+            <input id="adminCode" type="password" placeholder="Código admin" autocomplete="off" />
           </label>
-          <button class="primary-button" type="submit">Liberar resultados</button>
-          <small>Codigo do prototipo: ADMIN2026</small>
+          <button class="primary-button" type="submit">Liberar painel</button>
+          <small>Altere esse código no arquivo admin.js antes de publicar para o grupo.</small>
         </form>
 
         <section class="admin-dashboard hidden" id="adminPanel">
@@ -45,11 +45,15 @@
             <div class="panel-heading compact">
               <div>
                 <p class="eyebrow">Grupo fechado</p>
-                <h2>Participantes</h2>
+                <h2>Cadastros</h2>
               </div>
-              <strong class="score-badge" id="adminParticipantTotal">0</strong>
+              <div class="admin-counters">
+                <strong class="score-badge"><span id="adminParticipantTotal">0</span> aprovados</strong>
+                <strong class="score-badge"><span id="adminPendingTotal">0</span> pendentes</strong>
+              </div>
             </div>
-            <p class="admin-note">Nesta versao estatica, estes dados sao lidos do armazenamento deste navegador.</p>
+            <p class="admin-note">Aprove os cadastros recebidos e envie o código gerado para cada participante.</p>
+            <p class="admin-note" id="adminSyncStatus">Aguardando conexão com o Supabase.</p>
             <div class="admin-participant-list" id="adminParticipantList"></div>
           </section>
 
@@ -77,9 +81,9 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="supabase-config.js?v=17"></script>
-    <script src="supabase-state.js?v=17"></script>
-    <script src="data.js?v=17"></script>
-    <script src="admin.js?v=17"></script>
+    <script src="supabase-config.js?v=18"></script>
+    <script src="supabase-state.js?v=18"></script>
+    <script src="data.js?v=18"></script>
+    <script src="admin.js?v=18"></script>
   </body>
 </html>

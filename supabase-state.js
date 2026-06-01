@@ -1,6 +1,10 @@
 (function () {
-  const STATE_ID = "main";
-  const TABLE_NAME = "bolao_state";
+  const TABLES = {
+    participants: "bolao_participants",
+    guesses: "bolao_guesses",
+    results: "bolao_results"
+  };
+
   let lastError = null;
 
   function getConfig() {
@@ -13,8 +17,8 @@
       window.supabase &&
       config.url &&
       config.anonKey &&
-      !config.url.includes("https://zmnwjzzefwmvtflpfkoi.supabase.co") &&
-      !config.anonKey.includes("eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InptbndqenplZndtdnRmbHBma29pIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwNDAxMjUsImV4cCI6MjA5NTYxNjEyNX0.TYSQOQycJTRj5YBy16ywidSsl5tUQ0Q4gbX2DxrIrqw")
+      !config.url.includes("COLE_AQUI") &&
+      !config.anonKey.includes("COLE_AQUI")
     );
   }
 
@@ -29,64 +33,7 @@
 
   function setLastError(error) {
     lastError = error || null;
-    if (lastError) console.error("Bolao Supabase:", describeError(lastError), lastError);
-  }
-
-  function sharedOnly(state) {
-    return {
-      participants: state.participants || [],
-      matches: state.matches || [],
-      guesses: state.guesses || {}
-    };
-  }
-
-  async function loadSharedState(localState, mergeMatches) {
-    const client = getClient();
-    if (!client) return localState;
-
-    const { data, error } = await client
-      .from(TABLE_NAME)
-      .select("data")
-      .eq("id", STATE_ID)
-      .maybeSingle();
-
-    if (error) {
-      setLastError(error);
-      throw error;
-    }
-
-    if (!data?.data) {
-      await saveSharedState(localState);
-      return localState;
-    }
-
-    const shared = data.data;
-    return {
-      ...localState,
-      participants: Array.isArray(shared.participants) ? shared.participants : [],
-      matches: mergeMatches(shared.matches || []),
-      guesses: shared.guesses || {}
-    };
-  }
-
-  async function saveSharedState(state) {
-    const client = getClient();
-    if (!client) return;
-
-    const { error } = await client
-      .from(TABLE_NAME)
-      .upsert({
-        id: STATE_ID,
-        data: sharedOnly(state),
-        updated_at: new Date().toISOString()
-      }, { onConflict: "id" });
-
-    if (error) {
-      setLastError(error);
-      throw error;
-    }
-
-    setLastError(null);
+    if (lastError) console.error("Bolão Supabase:", describeError(lastError), lastError);
   }
 
   function describeError(error) {
@@ -96,40 +43,187 @@
       error.message,
       error.details,
       error.hint,
-      error.code ? `codigo: ${error.code}` : ""
+      error.code ? `código: ${error.code}` : ""
     ].filter(Boolean).join(" | ");
   }
 
-  function getLastError() {
-    return lastError;
+  function normalizeEmail(email) {
+    return String(email || "").trim().toLowerCase();
   }
 
-  async function testConnection() {
+  function mapParticipant(row) {
+    return {
+      id: row.id,
+      name: row.name,
+      email: row.email,
+      status: row.status || "pending",
+      accessCode: row.access_code || "",
+      createdAt: row.created_at || ""
+    };
+  }
+
+  function mapGuess(row) {
+    return {
+      participantId: row.participant_id,
+      matchId: row.match_id,
+      home: row.home_score,
+      away: row.away_score
+    };
+  }
+
+  function mapResult(row) {
+    return {
+      matchId: row.match_id,
+      home: row.home_score,
+      away: row.away_score
+    };
+  }
+
+  async function run(operation) {
     const client = getClient();
-    if (!client) {
-      return { ok: false, message: "Supabase nao esta configurado em supabase-config.js." };
-    }
+    if (!client) throw new Error("Supabase não está configurado em supabase-config.js.");
 
-    const { error } = await client
-      .from(TABLE_NAME)
-      .select("id")
-      .limit(1);
-
-    if (error) {
-      setLastError(error);
-      return { ok: false, message: describeError(error), error };
+    const response = await operation(client);
+    if (response.error) {
+      setLastError(response.error);
+      throw response.error;
     }
 
     setLastError(null);
-    return { ok: true, message: "Conexao com Supabase OK." };
+    return response.data;
+  }
+
+  async function loadPublicState() {
+    const [participants, guesses, results] = await Promise.all([
+      run((client) => client
+        .from(TABLES.participants)
+        .select("id,name,email,status,created_at")
+        .eq("status", "approved")
+        .order("name", { ascending: true })),
+      run((client) => client
+        .from(TABLES.guesses)
+        .select("participant_id,match_id,home_score,away_score")),
+      run((client) => client
+        .from(TABLES.results)
+        .select("match_id,home_score,away_score"))
+    ]);
+
+    return {
+      participants: participants.map(mapParticipant),
+      guesses: guesses.map(mapGuess),
+      results: results.map(mapResult)
+    };
+  }
+
+  async function listParticipants() {
+    const rows = await run((client) => client
+      .from(TABLES.participants)
+      .select("id,name,email,status,access_code,created_at")
+      .order("created_at", { ascending: false }));
+
+    return rows.map(mapParticipant);
+  }
+
+  async function registerParticipant(name, email) {
+    const normalizedEmail = normalizeEmail(email);
+    const existing = await run((client) => client
+      .from(TABLES.participants)
+      .select("id,name,email,status,access_code,created_at")
+      .eq("email", normalizedEmail)
+      .maybeSingle());
+
+    if (existing) return mapParticipant(existing);
+
+    const row = await run((client) => client
+      .from(TABLES.participants)
+      .insert({
+        name: String(name || "").trim(),
+        email: normalizedEmail,
+        status: "pending"
+      })
+      .select("id,name,email,status,access_code,created_at")
+      .single());
+
+    return mapParticipant(row);
+  }
+
+  async function loginParticipant(email, accessCode) {
+    const row = await run((client) => client
+      .from(TABLES.participants)
+      .select("id,name,email,status,access_code,created_at")
+      .eq("email", normalizeEmail(email))
+      .eq("access_code", String(accessCode || "").trim().toUpperCase())
+      .maybeSingle());
+
+    return row ? mapParticipant(row) : null;
+  }
+
+  async function approveParticipant(participantId, accessCode) {
+    const row = await run((client) => client
+      .from(TABLES.participants)
+      .update({
+        status: "approved",
+        access_code: accessCode,
+        approved_at: new Date().toISOString()
+      })
+      .eq("id", participantId)
+      .select("id,name,email,status,access_code,created_at")
+      .single());
+
+    return mapParticipant(row);
+  }
+
+  async function removeParticipant(participantId) {
+    await run((client) => client
+      .from(TABLES.participants)
+      .delete()
+      .eq("id", participantId));
+  }
+
+  async function saveGuess(participantId, matchId, home, away) {
+    await run((client) => client
+      .from(TABLES.guesses)
+      .upsert({
+        participant_id: participantId,
+        match_id: matchId,
+        home_score: Number(home),
+        away_score: Number(away),
+        updated_at: new Date().toISOString()
+      }, { onConflict: "participant_id,match_id" }));
+  }
+
+  async function saveResult(matchId, home, away) {
+    await run((client) => client
+      .from(TABLES.results)
+      .upsert({
+        match_id: matchId,
+        home_score: Number(home),
+        away_score: Number(away),
+        updated_at: new Date().toISOString()
+      }, { onConflict: "match_id" }));
+  }
+
+  async function testConnection() {
+    try {
+      await run((client) => client.from(TABLES.participants).select("id").limit(1));
+      return { ok: true, message: "Conexão com Supabase OK." };
+    } catch (error) {
+      return { ok: false, message: describeError(error), error };
+    }
   }
 
   window.BolaoSupabase = {
     isConfigured,
-    loadSharedState,
-    saveSharedState,
-    testConnection,
     describeError,
-    getLastError
+    getLastError: () => lastError,
+    testConnection,
+    loadPublicState,
+    listParticipants,
+    registerParticipant,
+    loginParticipant,
+    approveParticipant,
+    removeParticipant,
+    saveGuess,
+    saveResult
   };
 })();

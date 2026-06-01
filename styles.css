@@ -237,6 +237,24 @@ button {
   gap: 8px;
 }
 
+.admin-actions,
+.admin-counters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.admin-actions .primary-button,
+.admin-actions .secondary-button {
+  min-height: 36px;
+}
+
+.danger-button {
+  border-color: rgba(255, 91, 95, 0.5);
+  color: #ffd1d2;
+  background: rgba(255, 91, 95, 0.12);
+}
+
 .admin-participant-stats span {
   width: fit-content;
   min-height: 24px;
@@ -343,6 +361,25 @@ button {
   align-content: center;
   gap: 16px;
   padding: 24px;
+}
+
+.access-form {
+  display: grid;
+  gap: 12px;
+}
+
+.register-block {
+  margin-top: 4px;
+  padding-top: 18px;
+  border-top: 1px solid var(--line);
+}
+
+.auth-message {
+  min-height: 22px;
+  margin: 0;
+  color: var(--gold);
+  font-size: 0.9rem;
+  line-height: 1.45;
 }
 
 .auth-card h2 {
@@ -950,6 +987,12 @@ select:focus {
   width: 42px;
   padding: 0;
   text-align: center;
+  font-weight: 900;
+}
+
+.result-readonly {
+  min-height: 42px;
+  color: var(--gold);
   font-weight: 900;
 }
 

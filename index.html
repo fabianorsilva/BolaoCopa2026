@@ -3,12 +3,12 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="description" content="Bolao da Copa 2026 com palpites, ranking e area administrativa." />
-    <meta property="og:title" content="Bolao Copa 2026" />
+    <meta name="description" content="Bolão da Copa 2026 com cadastro, palpites, ranking e área administrativa." />
+    <meta property="og:title" content="Bolão Copa 2026" />
     <meta property="og:description" content="Palpites, ranking e resultados da Copa do Mundo 2026." />
     <meta property="og:type" content="website" />
-    <title>Bolao Copa 2026</title>
-    <link rel="stylesheet" href="styles.css?v=17" />
+    <title>Bolão Copa 2026</title>
+    <link rel="stylesheet" href="styles.css?v=18" />
   </head>
   <body>
     <div class="app-shell">
@@ -23,16 +23,13 @@
           </span>
           <div>
             <p class="eyebrow">Copa do Mundo 2026</p>
-            <h1>Bolao Copa 2026</h1>
+            <h1>Bolão Copa 2026</h1>
           </div>
         </div>
-        <div class="top-actions" id="topActions">
-          <span class="user-chip" id="currentUserChip">Sem cadastro</span>
+        <div class="top-actions hidden" id="topActions">
+          <span class="user-chip" id="currentUserChip">Sem acesso</span>
           <button class="secondary-button" id="logoutButton" type="button">Trocar</button>
-          <button class="icon-button" id="resetButton" type="button" aria-label="Restaurar dados" title="Restaurar dados">
-            <span aria-hidden="true">R</span>
-          </button>
-          <button class="primary-button" id="exportButton" type="button">Exportar</button>
+          <button class="primary-button" id="refreshButton" type="button">Atualizar</button>
         </div>
       </header>
 
@@ -47,41 +44,54 @@
               </svg>
             </span>
             <p class="eyebrow">Grupo fechado</p>
-            <h2>Bolao Copa 2026</h2>
-            <p class="intro-copy">Informe seu nome, e-mail e codigo do grupo para registrar seus palpites e acompanhar sua pontuacao.</p>
+            <h2>Bolão Copa 2026</h2>
+            <p class="intro-copy">Faça seu cadastro, aguarde a aprovação do administrador e use o código recebido para acessar seus palpites.</p>
             <div class="auth-stats">
               <article><strong>104</strong><span>jogos</span></article>
-              <article><strong>48</strong><span>selecoes</span></article>
+              <article><strong>48</strong><span>seleções</span></article>
               <article><strong>5</strong><span>pontos por placar exato</span></article>
             </div>
           </section>
 
-          <form class="auth-card" id="authForm">
-            <div>
-              <p class="eyebrow">Acesso</p>
-              <h2>Entrar no bolao</h2>
-            </div>
-            <div class="auth-fields">
+          <div class="auth-card">
+            <form class="access-form" id="loginForm">
+              <div>
+                <p class="eyebrow">Acesso liberado</p>
+                <h2>Entrar no bolão</h2>
+              </div>
+              <label>
+                E-mail
+                <input id="loginEmail" type="email" placeholder="seuemail@exemplo.com" maxlength="80" autocomplete="email" />
+              </label>
+              <label>
+                Código de acesso
+                <input id="loginCode" type="password" placeholder="Código enviado pelo administrador" autocomplete="off" />
+              </label>
+              <button class="primary-button" type="submit">Entrar</button>
+            </form>
+
+            <form class="access-form register-block" id="registerForm">
+              <div>
+                <p class="eyebrow">Primeiro acesso</p>
+                <h2>Solicitar cadastro</h2>
+              </div>
               <label>
                 Nome
-                <input id="signupName" type="text" placeholder="Seu nome" maxlength="28" autocomplete="name" />
+                <input id="registerName" type="text" placeholder="Seu nome" maxlength="40" autocomplete="name" />
               </label>
               <label>
                 E-mail
-                <input id="signupEmail" type="email" placeholder="seuemail@exemplo.com" maxlength="80" autocomplete="email" />
+                <input id="registerEmail" type="email" placeholder="seuemail@exemplo.com" maxlength="80" autocomplete="email" />
               </label>
-              <label>
-                Codigo
-                <input id="signupCode" type="password" placeholder="Digite o codigo recebido" autocomplete="off" />
-              </label>
-            </div>
-            <button class="primary-button" type="submit">Entrar no bolao</button>
-            <small>O codigo sera enviado previamente aos participantes.</small>
-          </form>
+              <button class="secondary-button" type="submit">Enviar cadastro</button>
+              <small>Depois da aprovação, o administrador enviará seu código de acesso.</small>
+            </form>
+            <p class="auth-message" id="authMessage" aria-live="polite"></p>
           </div>
+        </div>
       </section>
 
-      <main class="dashboard" id="dashboard">
+      <main class="dashboard hidden" id="dashboard">
         <section class="panel leaderboard-panel">
           <div class="panel-heading compact">
             <div>
@@ -122,8 +132,8 @@
         </section>
 
         <section class="panel tabs-panel">
-          <div class="tab-list" role="tablist" aria-label="Areas do bolao">
-            <button class="tab active" type="button" data-tab="minha-pontuacao">Minha pontuacao</button>
+          <div class="tab-list" role="tablist" aria-label="Áreas do bolão">
+            <button class="tab active" type="button" data-tab="minha-pontuacao">Minha pontuação</button>
             <button class="tab" type="button" data-tab="palpites">Palpites</button>
             <button class="tab" type="button" data-tab="jogos">Tabela</button>
             <button class="tab" type="button" data-tab="participantes">Participantes</button>
@@ -133,7 +143,7 @@
             <div class="toolbar split">
               <div>
                 <p class="eyebrow">Seu desempenho</p>
-                <h2 id="myScoreTitle">Minha pontuacao</h2>
+                <h2 id="myScoreTitle">Minha pontuação</h2>
               </div>
               <strong class="score-badge" id="myScoreTotal">0 pts</strong>
             </div>
@@ -160,22 +170,20 @@
                 <p class="eyebrow">104 jogos</p>
                 <h2>Tabela completa</h2>
               </div>
-              <small>Horarios em ET</small>
+              <small>Horários em ET</small>
             </div>
             <div class="match-list" id="resultList"></div>
           </section>
 
           <section class="tab-page" id="tab-participantes">
-            <form class="participant-form" id="participantForm">
-              <label>
-                Convidar participante
-                <input id="participantName" type="text" placeholder="Nome" maxlength="28" />
-              </label>
-              <button class="primary-button" type="submit">Adicionar</button>
-            </form>
+            <div class="toolbar split">
+              <div>
+                <p class="eyebrow">Grupo aprovado</p>
+                <h2>Participantes</h2>
+              </div>
+            </div>
             <div class="participant-grid" id="participantGrid"></div>
           </section>
-
         </section>
       </main>
     </div>
@@ -200,9 +208,9 @@
     </template>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="supabase-config.js?v=17"></script>
-    <script src="supabase-state.js?v=17"></script>
-    <script src="data.js?v=17"></script>
-    <script src="app.js?v=17"></script>
+    <script src="supabase-config.js?v=18"></script>
+    <script src="supabase-state.js?v=18"></script>
+    <script src="data.js?v=18"></script>
+    <script src="app.js?v=18"></script>
   </body>
 </html>

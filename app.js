@@ -1,5 +1,5 @@
-const STORAGE_KEY = "bolao-copa-2026-v2";
-const ACCESS_CODE = "UNIDADE4";
+const STORAGE_KEY = "bolao-copa-2026-session";
+
 const FLAG_BY_TEAM = {
   "Algeria": { code: "dz", label: "DZ" },
   "Argentina": { code: "ar", label: "AR" },
@@ -102,52 +102,38 @@ const TEAM_NAME_PT = {
   "Uzbekistan": "Uzbequistão"
 };
 
-const seedState = {
-  currentParticipantId: "",
+const state = {
+  currentParticipantId: localStorage.getItem(STORAGE_KEY) || "",
   participants: [],
   matches: structuredClone(WORLD_CUP_MATCHES),
   guesses: {}
 };
 
-const state = loadState();
 const els = {};
 
 document.addEventListener("DOMContentLoaded", async () => {
   bindElements();
   bindEvents();
-  await hydrateSharedState();
-  ensureStateShape();
+  await refreshState();
   render();
 });
-
-async function hydrateSharedState() {
-  if (!window.BolaoSupabase?.isConfigured()) return;
-
-  try {
-    const sharedState = await window.BolaoSupabase.loadSharedState(state, mergeMatches);
-    Object.assign(state, sharedState);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-  } catch (error) {
-    const detail = window.BolaoSupabase.describeError(error);
-    showToast(`Falha ao carregar Supabase: ${detail}`);
-  }
-}
 
 function bindElements() {
   Object.assign(els, {
     authPanel: document.querySelector("#authPanel"),
-    authForm: document.querySelector("#authForm"),
-    signupName: document.querySelector("#signupName"),
-    signupEmail: document.querySelector("#signupEmail"),
-    signupCode: document.querySelector("#signupCode"),
+    registerForm: document.querySelector("#registerForm"),
+    registerName: document.querySelector("#registerName"),
+    registerEmail: document.querySelector("#registerEmail"),
+    loginForm: document.querySelector("#loginForm"),
+    loginEmail: document.querySelector("#loginEmail"),
+    loginCode: document.querySelector("#loginCode"),
+    authMessage: document.querySelector("#authMessage"),
     dashboard: document.querySelector("#dashboard"),
     topActions: document.querySelector("#topActions"),
     currentUserChip: document.querySelector("#currentUserChip"),
     logoutButton: document.querySelector("#logoutButton"),
+    refreshButton: document.querySelector("#refreshButton"),
     leaderboard: document.querySelector("#leaderboard"),
-    totalParticipants: document.querySelector("#totalParticipants"),
-    closedMatches: document.querySelector("#closedMatches"),
-    averageScore: document.querySelector("#averageScore"),
     matchDaySelect: document.querySelector("#matchDaySelect"),
     dailyMatchList: document.querySelector("#dailyMatchList"),
     groupSelect: document.querySelector("#groupSelect"),
@@ -160,10 +146,6 @@ function bindElements() {
     guessList: document.querySelector("#guessList"),
     resultList: document.querySelector("#resultList"),
     participantGrid: document.querySelector("#participantGrid"),
-    participantForm: document.querySelector("#participantForm"),
-    participantName: document.querySelector("#participantName"),
-    exportButton: document.querySelector("#exportButton"),
-    resetButton: document.querySelector("#resetButton"),
     template: document.querySelector("#matchGuessTemplate")
   });
 }
@@ -173,119 +155,147 @@ function bindEvents() {
     button.addEventListener("click", () => activateTab(button.dataset.tab));
   });
 
-  els.authForm.addEventListener("submit", (event) => {
+  els.registerForm.addEventListener("submit", async (event) => {
     event.preventDefault();
-    registerParticipant(els.signupName.value.trim(), els.signupEmail.value.trim(), els.signupCode.value.trim());
+    await requestRegistration();
+  });
+
+  els.loginForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    await loginParticipant();
   });
 
   els.logoutButton.addEventListener("click", () => {
     state.currentParticipantId = "";
-    saveState();
+    localStorage.removeItem(STORAGE_KEY);
     render();
-    els.signupName.focus();
+    els.loginEmail.focus();
   });
 
-  els.playerSelect.addEventListener("change", () => {
-    state.currentParticipantId = els.playerSelect.value;
-    saveState();
+  els.refreshButton.addEventListener("click", async () => {
+    await refreshState();
     render();
+    showToast("Dados atualizados.");
   });
 
   els.roundFilter.addEventListener("change", renderGuesses);
   els.matchDaySelect.addEventListener("change", renderDailyMatches);
   els.groupSelect.addEventListener("change", renderGroupTeams);
-  els.exportButton.addEventListener("click", exportData);
-  els.resetButton.addEventListener("click", resetData);
-
-  els.participantForm.addEventListener("submit", (event) => {
-    event.preventDefault();
-    addParticipant(els.participantName.value.trim());
-  });
 }
 
-function loadState() {
-  const saved = localStorage.getItem(STORAGE_KEY);
-  if (!saved) return structuredClone(seedState);
+async function refreshState() {
+  if (!window.BolaoSupabase?.isConfigured()) {
+    showAuthMessage("Configure o Supabase para usar cadastros, códigos e palpites entre navegadores.");
+    return;
+  }
 
   try {
-    const parsed = JSON.parse(saved);
-    return {
-      currentParticipantId: parsed.currentParticipantId || "",
-      participants: normalizeParticipants(parsed.participants),
-      matches: mergeMatches(parsed.matches),
-      guesses: parsed.guesses || {}
-    };
-  } catch {
-    return structuredClone(seedState);
+    const shared = await window.BolaoSupabase.loadPublicState();
+    applySharedState(shared);
+  } catch (error) {
+    showAuthMessage(`Não foi possível carregar o Supabase: ${window.BolaoSupabase.describeError(error)}`);
   }
 }
 
-function normalizeParticipants(participants = []) {
-  if (!Array.isArray(participants)) return [];
-  return participants.map((participant) => ({
-    id: participant.id,
-    name: participant.name,
-    email: participant.email || ""
-  }));
-}
+function applySharedState(shared) {
+  state.participants = shared.participants || [];
+  state.matches = mergeResults(shared.results || []);
+  state.guesses = buildGuessMap(shared.guesses || []);
 
-function mergeMatches(savedMatches = []) {
-  const savedById = new Map(savedMatches.map((match) => [match.id, match]));
-  return WORLD_CUP_MATCHES.map((match) => ({
-    ...match,
-    result: savedById.get(match.id)?.result || null
-  }));
-}
-
-function saveState() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-  if (window.BolaoSupabase?.isConfigured()) {
-    window.BolaoSupabase.saveSharedState(state).catch((error) => {
-      const detail = window.BolaoSupabase.describeError(error);
-      showToast(`Nao foi possivel sincronizar: ${detail}`);
-    });
-  }
-}
-
-function ensureStateShape() {
-  state.matches = mergeMatches(state.matches);
-  state.participants.forEach((participant) => ensureGuessesForParticipant(participant.id));
   if (!state.participants.some((participant) => participant.id === state.currentParticipantId)) {
     state.currentParticipantId = "";
+    localStorage.removeItem(STORAGE_KEY);
   }
-  saveState();
 }
 
-function ensureGuessesForParticipant(participantId) {
-  state.guesses[participantId] ||= {};
-  state.matches.forEach((match) => {
-    state.guesses[participantId][match.id] ||= { home: "", away: "" };
+function mergeResults(results = []) {
+  const resultByMatch = new Map(results.map((result) => [result.matchId, result]));
+  return WORLD_CUP_MATCHES.map((match) => {
+    const result = resultByMatch.get(match.id);
+    return {
+      ...match,
+      result: result ? { home: result.home, away: result.away } : null
+    };
   });
 }
 
-function registerParticipant(name, email, code) {
+function buildGuessMap(guesses = []) {
+  return guesses.reduce((map, guess) => {
+    map[guess.participantId] ||= {};
+    map[guess.participantId][guess.matchId] = { home: guess.home, away: guess.away };
+    return map;
+  }, {});
+}
+
+async function requestRegistration() {
+  const name = els.registerName.value.trim();
+  const email = els.registerEmail.value.trim();
+
   if (!name) {
-    showToast("Informe seu nome.");
+    showAuthMessage("Informe seu nome.");
     return;
   }
 
   if (!isValidEmail(email)) {
-    showToast("Informe um e-mail valido.");
+    showAuthMessage("Informe um e-mail válido.");
     return;
   }
 
-  if (code.toUpperCase() !== ACCESS_CODE) {
-    showToast("Codigo do grupo incorreto.");
+  if (!window.BolaoSupabase?.isConfigured()) {
+    showAuthMessage("Supabase não configurado. O cadastro precisa do banco online.");
     return;
   }
 
-  const participant = addParticipant(name, { email, silent: true });
-  state.currentParticipantId = participant.id;
-  els.signupName.value = "";
-  els.signupEmail.value = "";
-  els.signupCode.value = "";
-  saveState();
-  render();
+  try {
+    const participant = await window.BolaoSupabase.registerParticipant(name, email);
+    els.registerForm.reset();
+    if (participant.status === "approved") {
+      showAuthMessage("Seu cadastro já foi aprovado. Use o código enviado pelo administrador para entrar.");
+      els.loginEmail.value = participant.email;
+      els.loginCode.focus();
+      return;
+    }
+
+    showAuthMessage("Cadastro enviado. Aguarde o administrador aprovar e enviar seu código de acesso.");
+  } catch (error) {
+    showAuthMessage(`Não foi possível enviar o cadastro: ${window.BolaoSupabase.describeError(error)}`);
+  }
+}
+
+async function loginParticipant() {
+  const email = els.loginEmail.value.trim();
+  const code = els.loginCode.value.trim();
+
+  if (!isValidEmail(email)) {
+    showAuthMessage("Informe seu e-mail cadastrado.");
+    return;
+  }
+
+  if (!code) {
+    showAuthMessage("Informe o código enviado pelo administrador.");
+    return;
+  }
+
+  try {
+    const participant = await window.BolaoSupabase.loginParticipant(email, code);
+    if (!participant) {
+      showAuthMessage("E-mail ou código incorreto. Se você acabou de se cadastrar, aguarde a aprovação do administrador.");
+      return;
+    }
+
+    if (participant.status !== "approved") {
+      showAuthMessage("Seu cadastro ainda está aguardando aprovação.");
+      return;
+    }
+
+    state.currentParticipantId = participant.id;
+    localStorage.setItem(STORAGE_KEY, participant.id);
+    await refreshState();
+    render();
+    showToast("Entrada confirmada. Bons palpites!");
+  } catch (error) {
+    showAuthMessage(`Não foi possível entrar: ${window.BolaoSupabase.describeError(error)}`);
+  }
 }
 
 function activateTab(tabName) {
@@ -294,17 +304,18 @@ function activateTab(tabName) {
 }
 
 function render() {
-  const hasCurrentParticipant = Boolean(getCurrentParticipant());
-  els.authPanel.classList.toggle("hidden", hasCurrentParticipant);
-  els.dashboard.classList.toggle("hidden", !hasCurrentParticipant);
-  els.topActions.classList.toggle("hidden", !hasCurrentParticipant);
-  els.currentUserChip.textContent = getCurrentParticipant()?.name || "Sem cadastro";
+  const participant = getCurrentParticipant();
+  const isLoggedIn = Boolean(participant);
+
+  els.authPanel.classList.toggle("hidden", isLoggedIn);
+  els.dashboard.classList.toggle("hidden", !isLoggedIn);
+  els.topActions.classList.toggle("hidden", !isLoggedIn);
+  els.currentUserChip.textContent = participant?.name || "Sem acesso";
 
   renderSelectors();
   renderLeaderboard();
   renderDailyMatches();
   renderGroupTeams();
-  renderStats();
   renderMyScore();
   renderGuesses();
   renderResults();
@@ -312,12 +323,10 @@ function render() {
 }
 
 function renderSelectors() {
-  const currentPlayer = state.currentParticipantId || "";
   const currentParticipant = getCurrentParticipant();
   els.playerSelect.innerHTML = currentParticipant
     ? `<option value="${currentParticipant.id}">${escapeHtml(currentParticipant.name)}</option>`
-    : `<option value="">Cadastre alguem</option>`;
-  els.playerSelect.value = currentPlayer;
+    : `<option value="">Entre no bolão</option>`;
   els.playerSelect.disabled = true;
 
   const rounds = ["Todas", ...new Set(state.matches.map((match) => match.round))];
@@ -334,7 +343,6 @@ function renderSelectors() {
   const currentGroup = els.groupSelect.value || groups[0]?.id || "";
   els.groupSelect.innerHTML = groups.map((group) => `<option value="${group.id}">${group.name}</option>`).join("");
   els.groupSelect.value = groups.some((group) => group.id === currentGroup) ? currentGroup : groups[0]?.id || "";
-
 }
 
 function renderLeaderboard() {
@@ -346,13 +354,12 @@ function renderLeaderboard() {
         <div>
           <strong>${escapeHtml(row.name)}</strong>
           <br />
-          <small>${row.exact} placares exatos - ${row.trend} tendencias corretas</small>
+          <small>${row.exact} placares exatos - ${row.trend} tendências corretas</small>
         </div>
         <span class="points">${row.points} pts</span>
       </li>
     `).join("")
-    : `<li class="empty-state">Nenhum participante cadastrado.</li>`;
-
+    : `<li class="empty-state">Nenhum participante aprovado ainda.</li>`;
 }
 
 function renderDailyMatches() {
@@ -373,9 +380,9 @@ function renderDailyMatches() {
         <div class="daily-guess-row">
           <span>Seu palpite</span>
           <div class="score-inputs">
-            <input class="daily-home-score" type="number" min="0" max="20" inputmode="numeric" value="${guess.home}" aria-label="Seu palpite para ${escapeHtml(formatTeamName(match.home))}" />
+            <input class="daily-home-score" type="number" min="0" max="20" inputmode="numeric" value="${guess.home}" aria-label="Gols de ${escapeHtml(formatTeamName(match.home))}" />
             <span>x</span>
-            <input class="daily-away-score" type="number" min="0" max="20" inputmode="numeric" value="${guess.away}" aria-label="Seu palpite para ${escapeHtml(formatTeamName(match.away))}" />
+            <input class="daily-away-score" type="number" min="0" max="20" inputmode="numeric" value="${guess.away}" aria-label="Gols de ${escapeHtml(formatTeamName(match.away))}" />
           </div>
           <button class="secondary-button save-daily-guess" type="button">Salvar</button>
         </div>
@@ -387,21 +394,19 @@ function renderDailyMatches() {
 
   els.dailyMatchList.querySelectorAll("[data-daily-match]").forEach((card) => {
     const saveButton = card.querySelector(".save-daily-guess");
-    saveButton.addEventListener("click", () => {
-      saveDailyGuess(
-        participantId,
-        card.dataset.dailyMatch,
-        card.querySelector(".daily-home-score").value,
-        card.querySelector(".daily-away-score").value,
-        saveButton
-      );
-    });
+    saveButton.addEventListener("click", () => saveGuess(
+      participantId,
+      card.dataset.dailyMatch,
+      card.querySelector(".daily-home-score").value,
+      card.querySelector(".daily-away-score").value,
+      saveButton
+    ));
   });
 }
 
-function saveDailyGuess(participantId, matchId, home, away, button) {
+async function saveGuess(participantId, matchId, home, away, button) {
   if (!participantId) {
-    showToast("Entre no bolao para salvar seu palpite.");
+    showToast("Entre no bolão para salvar seu palpite.");
     return;
   }
 
@@ -410,20 +415,20 @@ function saveDailyGuess(participantId, matchId, home, away, button) {
     return;
   }
 
-  state.guesses[participantId] ||= {};
-  state.guesses[participantId][matchId] = {
-    home: normalizeScore(home),
-    away: normalizeScore(away)
-  };
-  saveState();
-  renderLeaderboard();
-  renderDailyMatches();
-  renderStats();
-  renderMyScore();
-  renderGuesses();
-  renderParticipants();
-  markButtonSaved(button);
-  showToast("Palpite salvo.");
+  try {
+    await window.BolaoSupabase.saveGuess(participantId, matchId, normalizeScore(home), normalizeScore(away));
+    state.guesses[participantId] ||= {};
+    state.guesses[participantId][matchId] = { home: normalizeScore(home), away: normalizeScore(away) };
+    renderLeaderboard();
+    renderDailyMatches();
+    renderMyScore();
+    renderGuesses();
+    renderParticipants();
+    markButtonSaved(button);
+    showToast("Palpite salvo.");
+  } catch (error) {
+    showToast(`Não foi possível salvar o palpite: ${window.BolaoSupabase.describeError(error)}`);
+  }
 }
 
 function markButtonSaved(button, text = "Salvo") {
@@ -449,10 +454,10 @@ function renderGroupTeams() {
 
   const standings = getGroupStandings(group);
   els.groupTeamList.innerHTML = `
-    <div class="standings-table" role="table" aria-label="Classificacao do ${group.name}">
+    <div class="standings-table" role="table" aria-label="Classificação do ${group.name}">
       <div class="standings-row standings-head" role="row">
         <span>#</span>
-        <span>Selecao</span>
+        <span>Seleção</span>
         <span>Pts</span>
         <span>J</span>
         <span>V</span>
@@ -491,8 +496,8 @@ function renderMyScore() {
     <div class="score-summary">
       <article><strong>${total}</strong><small>pontos totais</small></article>
       <article><strong>${exact}</strong><small>placares exatos</small></article>
-      <article><strong>${trend}</strong><small>tendencias corretas</small></article>
-      <article><strong>${settledMatches.length}</strong><small>jogos pontuados</small></article>
+      <article><strong>${trend}</strong><small>tendências corretas</small></article>
+      <article><strong>${settledMatches.length}</strong><small>jogos com resultado</small></article>
     </div>
     <div class="score-list">
       ${state.matches.map((match) => renderScoreRow(match, participant.id)).join("")}
@@ -525,28 +530,14 @@ function renderScoreRow(match, participantId) {
   `;
 }
 
-function renderStats() {
-  if (!els.totalParticipants || !els.closedMatches || !els.averageScore) return;
-
-  const ranking = getRanking();
-  const closed = state.matches.filter((match) => isCompleteScore(match.result)).length;
-  const average = ranking.length
-    ? Math.round(ranking.reduce((sum, row) => sum + row.points, 0) / ranking.length)
-    : 0;
-
-  els.totalParticipants.textContent = state.participants.length;
-  els.closedMatches.textContent = closed;
-  els.averageScore.textContent = average;
-}
-
 function renderGuesses() {
-  const participantId = els.playerSelect.value || state.currentParticipantId;
+  const participantId = state.currentParticipantId;
   const round = els.roundFilter.value;
   const matches = state.matches.filter((match) => round === "Todas" || match.round === round);
 
   els.guessList.innerHTML = "";
   if (!participantId) {
-    els.guessList.innerHTML = `<article class="match-card empty-state">Cadastre um participante para preencher palpites.</article>`;
+    els.guessList.innerHTML = `<article class="match-card empty-state">Entre no bolão para preencher seus palpites.</article>`;
     return;
   }
 
@@ -562,42 +553,48 @@ function renderGuesses() {
     const card = createMatchCard(match, guess, "guess");
     const [homeInput, awayInput] = card.querySelectorAll("input");
 
-    homeInput.addEventListener("change", () => updateGuess(participantId, match.id, "home", homeInput.value));
-    awayInput.addEventListener("change", () => updateGuess(participantId, match.id, "away", awayInput.value));
+    homeInput.addEventListener("change", () => saveGuess(participantId, match.id, homeInput.value, awayInput.value));
+    awayInput.addEventListener("change", () => saveGuess(participantId, match.id, homeInput.value, awayInput.value));
     els.guessList.append(card);
   });
 }
 
 function renderResults() {
-  els.resultList.innerHTML = "";
-  state.matches.forEach((match) => {
-    const score = match.result || { home: "", away: "" };
-    const card = createMatchCard(match, score, "result");
-    const [homeInput, awayInput] = card.querySelectorAll("input");
-
-    homeInput.addEventListener("change", () => updateResult(match.id, "home", homeInput.value));
-    awayInput.addEventListener("change", () => updateResult(match.id, "away", awayInput.value));
-    els.resultList.append(card);
-  });
+  els.resultList.innerHTML = state.matches.map((match) => {
+    const result = match.result || { home: "", away: "" };
+    return `
+      <article class="match-card">
+        <div class="match-meta">
+          <span class="pill">${formatRoundLabel(match.round)}</span>
+          <small>Jogo ${match.number} - ${formatDate(match.date)} - ${match.time} ET</small>
+        </div>
+        <div class="teams-row">
+          <strong class="home-team">${teamMarkup(match.home)}</strong>
+          <div class="score-inputs result-readonly">
+            <strong>${isCompleteScore(result) ? result.home : "-"}</strong>
+            <span>x</span>
+            <strong>${isCompleteScore(result) ? result.away : "-"}</strong>
+          </div>
+          <strong class="away-team">${teamMarkup(match.away)}</strong>
+        </div>
+        <div class="match-footer">${escapeHtml(match.city)} - ${escapeHtml(match.venue)}</div>
+      </article>
+    `;
+  }).join("");
 }
 
 function renderParticipants() {
   els.participantGrid.innerHTML = state.participants.length
-    ? state.participants.map((participant) => `
+    ? getRanking().map((participant, index) => `
       <article class="participant-card">
         <div>
-          <strong>${escapeHtml(participant.name)}</strong>
+          <strong>${index + 1}. ${escapeHtml(participant.name)}</strong>
           <br />
-          <small>${getParticipantPoints(participant.id)} pts</small>
+          <small>${participant.points} pts - ${participant.exact} placares exatos</small>
         </div>
-        <button type="button" data-remove="${participant.id}" aria-label="Remover ${escapeHtml(participant.name)}">x</button>
       </article>
     `).join("")
-    : `<article class="participant-card empty-state">O grupo ainda nao tem participantes.</article>`;
-
-  els.participantGrid.querySelectorAll("[data-remove]").forEach((button) => {
-    button.addEventListener("click", () => removeParticipant(button.dataset.remove));
-  });
+    : `<article class="participant-card empty-state">O grupo ainda não tem participantes aprovados.</article>`;
 }
 
 function createMatchCard(match, score, mode) {
@@ -609,94 +606,16 @@ function createMatchCard(match, score, mode) {
 
   const homeInput = card.querySelector(".home-score");
   const awayInput = card.querySelector(".away-score");
-  homeInput.value = score.home;
-  awayInput.value = score.away;
-
-  if (mode === "result") {
-    homeInput.disabled = false;
-    awayInput.disabled = false;
-  }
+  homeInput.value = score.home ?? "";
+  awayInput.value = score.away ?? "";
 
   const footer = card.querySelector(".match-footer");
-  if (mode === "guess") {
-    const feedback = getGuessFeedback(score, match.result);
-    footer.innerHTML = isCompleteScore(match.result)
-      ? `<span>Resultado: ${match.result.home} x ${match.result.away}</span><strong class="${feedback?.className || ""}">${feedback?.label || `${scoreGuess(score, match.result)} pts`}</strong>`
-      : `<span>${escapeHtml(match.city)} - ${escapeHtml(match.venue)}</span><strong>${isCompleteScore(score) ? "palpite salvo" : "preencha o placar"}</strong>`;
-  } else {
-    footer.textContent = isCompleteScore(match.result)
-      ? `${match.city} - resultado registrado`
-      : `${match.city} - ${match.venue}`;
-  }
+  const feedback = getGuessFeedback(score, match.result);
+  footer.innerHTML = isCompleteScore(match.result)
+    ? `<span>Resultado: ${match.result.home} x ${match.result.away}</span><strong class="${feedback?.className || ""}">${feedback?.label || `${scoreGuess(score, match.result)} pts`}</strong>`
+    : `<span>${escapeHtml(match.city)} - ${escapeHtml(match.venue)}</span><strong>${isCompleteScore(score) ? "palpite salvo" : "preencha o placar"}</strong>`;
 
   return card;
-}
-
-function updateGuess(participantId, matchId, side, value) {
-  if (!participantId) return;
-  state.guesses[participantId] ||= {};
-  state.guesses[participantId][matchId] ||= { home: "", away: "" };
-  state.guesses[participantId][matchId][side] = value === "" ? "" : normalizeScore(value);
-  saveState();
-  renderLeaderboard();
-  renderDailyMatches();
-  renderStats();
-  renderMyScore();
-  renderGuesses();
-  renderParticipants();
-}
-
-function updateResult(matchId, side, value) {
-  const match = state.matches.find((item) => item.id === matchId);
-  if (!match) return;
-  match.result ||= { home: "", away: "" };
-  match.result[side] = value === "" ? "" : normalizeScore(value);
-  if (match.result.home === "" && match.result.away === "") match.result = null;
-  saveState();
-  render();
-}
-
-function addParticipant(name, options = {}) {
-  if (!name) return null;
-  const email = (options.email || "").trim().toLowerCase();
-  const id = email ? slugify(email) : slugify(name);
-  const existing = state.participants.find((participant) => participant.id === id || (email && participant.email === email));
-  if (existing) {
-    existing.name = name || existing.name;
-    existing.email = email || existing.email || "";
-    if (!options.silent) showToast("Esse participante ja existe.");
-    ensureGuessesForParticipant(existing.id);
-    return existing;
-  }
-
-  const participant = { id, name, email };
-  state.participants.push(participant);
-  ensureGuessesForParticipant(id);
-  els.participantName.value = "";
-  saveState();
-  if (!options.silent) render();
-  return participant;
-}
-
-function removeParticipant(id) {
-  state.participants = state.participants.filter((participant) => participant.id !== id);
-  delete state.guesses[id];
-  if (state.currentParticipantId === id) state.currentParticipantId = "";
-  saveState();
-  render();
-}
-
-function resetData() {
-  localStorage.removeItem(STORAGE_KEY);
-  Object.assign(state, structuredClone(seedState));
-  ensureStateShape();
-  render();
-}
-
-function exportData() {
-  const payload = JSON.stringify(state, null, 2);
-  navigator.clipboard?.writeText(payload);
-  showToast("Dados do bolao copiados em JSON.");
 }
 
 function getCurrentParticipant() {
@@ -734,39 +653,22 @@ function scoreGuess(guess, result) {
 
 function getGuessFeedback(guess, result) {
   if (!isCompleteScore(result)) return null;
-  if (!isCompleteScore(guess)) {
-    return { label: "Sem palpite", className: "feedback-missed" };
-  }
+  if (!isCompleteScore(guess)) return { label: "Sem palpite", className: "feedback-missed" };
 
   const points = scoreGuess(guess, result);
   if (points === 5) return { label: "Placar correto +5 pts", className: "feedback-exact" };
-  if (points === 2) return { label: "Tendencia correta +2 pts", className: "feedback-trend" };
+  if (points === 2) return { label: "Tendência correta +2 pts", className: "feedback-trend" };
   return { label: "Palpite errado", className: "feedback-wrong" };
 }
 
 function isCompleteScore(score) {
-  return score && score.home !== "" && score.away !== "" && score.home !== null && score.away !== null;
+  return score && score.home !== "" && score.away !== "" && score.home !== null && score.away !== null && score.home !== undefined && score.away !== undefined;
 }
 
 function getOutcome(score) {
   if (Number(score.home) > Number(score.away)) return "home";
   if (Number(score.home) < Number(score.away)) return "away";
   return "draw";
-}
-
-function getPopularPrediction(matchId) {
-  const counts = new Map();
-  state.participants.forEach((participant) => {
-    const guess = state.guesses[participant.id]?.[matchId];
-    if (!isCompleteScore(guess)) return;
-    const key = `${guess.home}-${guess.away}`;
-    counts.set(key, (counts.get(key) || 0) + 1);
-  });
-
-  const [best] = [...counts.entries()].sort((a, b) => b[1] - a[1]);
-  if (!best) return { home: "-", away: "-" };
-  const [home, away] = best[0].split("-").map((value) => value.trim());
-  return { home, away };
 }
 
 function getMatchDays() {
@@ -843,10 +745,7 @@ function getGroupStandings(group) {
     });
 
   return [...table.values()]
-    .map((team) => ({
-      ...team,
-      goalDifference: team.goalsFor - team.goalsAgainst
-    }))
+    .map((team) => ({ ...team, goalDifference: team.goalsFor - team.goalsAgainst }))
     .sort((a, b) =>
       b.points - a.points ||
       b.goalDifference - a.goalDifference ||
@@ -909,15 +808,6 @@ function formatDate(value) {
   return `${day}/${month}/${year}`;
 }
 
-function slugify(value) {
-  return value
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-|-$/g, "");
-}
-
 function isValidEmail(value) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
 }
@@ -929,6 +819,10 @@ function escapeHtml(value) {
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#039;");
+}
+
+function showAuthMessage(message) {
+  els.authMessage.textContent = message;
 }
 
 function showToast(message) {

@@ -1,162 +1,224 @@
-const STORAGE_KEY = "bolao-copa-2026-v2";
 const ADMIN_CODE = "ADMIN2026";
 
 const TEAM_NAME_PT = {
-  "Algeria": "Argelia",
+  "Algeria": "Argélia",
   "Argentina": "Argentina",
-  "Australia": "Australia",
-  "Austria": "Austria",
-  "Belgium": "Belgica",
-  "Bosnia & Herzegovina": "Bosnia e Herzegovina",
+  "Australia": "Austrália",
+  "Austria": "Áustria",
+  "Belgium": "Bélgica",
+  "Bosnia & Herzegovina": "Bósnia e Herzegovina",
   "Brazil": "Brasil",
-  "Canada": "Canada",
+  "Canada": "Canadá",
   "Cape Verde": "Cabo Verde",
-  "Colombia": "Colombia",
-  "Croatia": "Croacia",
-  "Curacao": "Curacao",
-  "Czechia": "Tchequia",
+  "Colombia": "Colômbia",
+  "Croatia": "Croácia",
+  "Curacao": "Curaçao",
+  "Czechia": "Tchéquia",
   "DR Congo": "RD Congo",
   "Ecuador": "Equador",
   "Egypt": "Egito",
   "England": "Inglaterra",
-  "France": "Franca",
+  "France": "França",
   "Germany": "Alemanha",
   "Ghana": "Gana",
   "Haiti": "Haiti",
-  "Iran": "Ira",
+  "Iran": "Irã",
   "Iraq": "Iraque",
   "Ivory Coast": "Costa do Marfim",
-  "Japan": "Japao",
-  "Jordan": "Jordania",
-  "Mexico": "Mexico",
+  "Japan": "Japão",
+  "Jordan": "Jordânia",
+  "Mexico": "México",
   "Morocco": "Marrocos",
-  "Netherlands": "Paises Baixos",
-  "New Zealand": "Nova Zelandia",
+  "Netherlands": "Países Baixos",
+  "New Zealand": "Nova Zelândia",
   "Norway": "Noruega",
-  "Panama": "Panama",
+  "Panama": "Panamá",
   "Paraguay": "Paraguai",
   "Portugal": "Portugal",
   "Qatar": "Catar",
-  "Saudi Arabia": "Arabia Saudita",
-  "Scotland": "Escocia",
+  "Saudi Arabia": "Arábia Saudita",
+  "Scotland": "Escócia",
   "Senegal": "Senegal",
-  "South Africa": "Africa do Sul",
+  "South Africa": "África do Sul",
   "South Korea": "Coreia do Sul",
   "Spain": "Espanha",
-  "Sweden": "Suecia",
-  "Switzerland": "Suica",
-  "Tunisia": "Tunisia",
+  "Sweden": "Suécia",
+  "Switzerland": "Suíça",
+  "Tunisia": "Tunísia",
   "Turkiye": "Turquia",
   "United States": "Estados Unidos",
   "Uruguay": "Uruguai",
-  "Uzbekistan": "Uzbequistao"
+  "Uzbekistan": "Uzbequistão"
 };
 
-const state = loadState();
+const state = {
+  participants: [],
+  matches: structuredClone(WORLD_CUP_MATCHES),
+  guesses: {}
+};
+
 const els = {};
 
-document.addEventListener("DOMContentLoaded", async () => {
+document.addEventListener("DOMContentLoaded", () => {
   Object.assign(els, {
     adminLoginForm: document.querySelector("#adminLoginForm"),
     adminCode: document.querySelector("#adminCode"),
     adminPanel: document.querySelector("#adminPanel"),
     adminParticipantTotal: document.querySelector("#adminParticipantTotal"),
+    adminPendingTotal: document.querySelector("#adminPendingTotal"),
     adminParticipantList: document.querySelector("#adminParticipantList"),
     adminDaySelect: document.querySelector("#adminDaySelect"),
     adminRoundSelect: document.querySelector("#adminRoundSelect"),
-    adminResultList: document.querySelector("#adminResultList")
+    adminResultList: document.querySelector("#adminResultList"),
+    adminSyncStatus: document.querySelector("#adminSyncStatus")
   });
 
-  els.adminLoginForm.addEventListener("submit", (event) => {
+  els.adminLoginForm.addEventListener("submit", async (event) => {
     event.preventDefault();
-    unlockAdmin();
+    await unlockAdmin();
   });
   els.adminDaySelect.addEventListener("change", renderAdminResults);
   els.adminRoundSelect.addEventListener("change", renderAdminResults);
-  await hydrateSharedState();
 });
 
-async function hydrateSharedState() {
-  if (!window.BolaoSupabase?.isConfigured()) return;
-
-  try {
-    const sharedState = await window.BolaoSupabase.loadSharedState(state, mergeMatches);
-    Object.assign(state, sharedState);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-  } catch (error) {
-    const detail = window.BolaoSupabase.describeError(error);
-    showToast(`Falha ao carregar Supabase: ${detail}`);
-  }
-}
-
-function loadState() {
-  const saved = localStorage.getItem(STORAGE_KEY);
-  if (!saved) {
-    return { currentParticipantId: "", participants: [], matches: structuredClone(WORLD_CUP_MATCHES), guesses: {} };
-  }
-
-  try {
-    const parsed = JSON.parse(saved);
-    return {
-      currentParticipantId: parsed.currentParticipantId || "",
-      participants: Array.isArray(parsed.participants) ? parsed.participants : [],
-      matches: mergeMatches(parsed.matches),
-      guesses: parsed.guesses || {}
-    };
-  } catch {
-    return { currentParticipantId: "", participants: [], matches: structuredClone(WORLD_CUP_MATCHES), guesses: {} };
-  }
-}
-
-function mergeMatches(savedMatches = []) {
-  const savedById = new Map(savedMatches.map((match) => [match.id, match]));
-  return WORLD_CUP_MATCHES.map((match) => ({
-    ...match,
-    result: savedById.get(match.id)?.result || null
-  }));
-}
-
-function saveState() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-  if (window.BolaoSupabase?.isConfigured()) {
-    window.BolaoSupabase.saveSharedState(state).catch((error) => {
-      const detail = window.BolaoSupabase.describeError(error);
-      showToast(`Nao foi possivel sincronizar: ${detail}`);
-    });
-  }
-}
-
-function unlockAdmin() {
+async function unlockAdmin() {
   if (els.adminCode.value.trim().toUpperCase() !== ADMIN_CODE) {
-    showToast("Codigo de administrador incorreto.");
+    showToast("Código de administrador incorreto.");
+    return;
+  }
+
+  if (!window.BolaoSupabase?.isConfigured()) {
+    showToast("Configure o Supabase antes de usar o painel administrativo.");
     return;
   }
 
   els.adminLoginForm.classList.add("hidden");
   els.adminPanel.classList.remove("hidden");
   populateSelectors();
-  renderParticipants();
+  await refreshAdminState();
   renderAdminResults();
-  showToast("Area de resultados liberada.");
+  showToast("Área administrativa liberada.");
+}
+
+async function refreshAdminState() {
+  try {
+    const [participants, publicState] = await Promise.all([
+      window.BolaoSupabase.listParticipants(),
+      window.BolaoSupabase.loadPublicState()
+    ]);
+
+    state.participants = participants;
+    state.guesses = buildGuessMap(publicState.guesses || []);
+    state.matches = mergeResults(publicState.results || []);
+    renderParticipants();
+    renderAdminResults();
+    setAdminStatus("Sincronizado com o Supabase.");
+  } catch (error) {
+    setAdminStatus(`Falha no Supabase: ${window.BolaoSupabase.describeError(error)}`);
+  }
+}
+
+function mergeResults(results = []) {
+  const resultByMatch = new Map(results.map((result) => [result.matchId, result]));
+  return WORLD_CUP_MATCHES.map((match) => {
+    const result = resultByMatch.get(match.id);
+    return {
+      ...match,
+      result: result ? { home: result.home, away: result.away } : null
+    };
+  });
+}
+
+function buildGuessMap(guesses = []) {
+  return guesses.reduce((map, guess) => {
+    map[guess.participantId] ||= {};
+    map[guess.participantId][guess.matchId] = { home: guess.home, away: guess.away };
+    return map;
+  }, {});
 }
 
 function renderParticipants() {
-  const participants = getParticipantSummaries();
-  els.adminParticipantTotal.textContent = participants.length;
-  els.adminParticipantList.innerHTML = participants.length
-    ? participants.map((participant) => `
-      <article class="admin-participant-card">
-        <div>
-          <strong>${escapeHtml(participant.name)}</strong>
-          <small>${escapeHtml(participant.email || "sem e-mail")}</small>
-        </div>
-        <div class="admin-participant-stats">
-          <span>${participant.points} pts</span>
-          <span>${participant.filledGuesses}/${state.matches.length} palpites</span>
-        </div>
-      </article>
-    `).join("")
-    : `<article class="admin-participant-card empty-state">Nenhum participante cadastrado neste navegador.</article>`;
+  const pending = state.participants.filter((participant) => participant.status !== "approved");
+  const approved = state.participants.filter((participant) => participant.status === "approved");
+  const ordered = [...pending, ...approved].sort((a, b) => {
+    if (a.status !== b.status) return a.status === "pending" ? -1 : 1;
+    return a.name.localeCompare(b.name);
+  });
+
+  els.adminParticipantTotal.textContent = approved.length;
+  els.adminPendingTotal.textContent = pending.length;
+  els.adminParticipantList.innerHTML = ordered.length
+    ? ordered.map((participant) => participantCardMarkup(participant)).join("")
+    : `<article class="admin-participant-card empty-state">Nenhum cadastro recebido ainda.</article>`;
+
+  els.adminParticipantList.querySelectorAll("[data-approve]").forEach((button) => {
+    button.addEventListener("click", () => approveParticipant(button.dataset.approve));
+  });
+
+  els.adminParticipantList.querySelectorAll("[data-copy]").forEach((button) => {
+    button.addEventListener("click", () => copyAccessCode(button.dataset.copy));
+  });
+
+  els.adminParticipantList.querySelectorAll("[data-remove]").forEach((button) => {
+    button.addEventListener("click", () => removeParticipant(button.dataset.remove));
+  });
+}
+
+function participantCardMarkup(participant) {
+  const summary = getParticipantSummary(participant);
+  const statusLabel = participant.status === "approved" ? "Aprovado" : "Pendente";
+  const code = participant.accessCode || "";
+
+  return `
+    <article class="admin-participant-card">
+      <div>
+        <strong>${escapeHtml(participant.name)}</strong>
+        <small>${escapeHtml(participant.email || "sem e-mail")}</small>
+      </div>
+      <div class="admin-participant-stats">
+        <span>${statusLabel}</span>
+        <span>${summary.points} pts</span>
+        <span>${summary.filledGuesses}/${state.matches.length} palpites</span>
+        ${code ? `<span>Código: ${escapeHtml(code)}</span>` : ""}
+      </div>
+      <div class="admin-actions">
+        ${participant.status === "approved"
+          ? `<button class="secondary-button" type="button" data-copy="${escapeHtml(code)}">Copiar código</button>`
+          : `<button class="primary-button" type="button" data-approve="${participant.id}">Aprovar e gerar código</button>`}
+        <button class="secondary-button danger-button" type="button" data-remove="${participant.id}">Remover</button>
+      </div>
+    </article>
+  `;
+}
+
+async function approveParticipant(participantId) {
+  const code = generateAccessCode();
+
+  try {
+    const participant = await window.BolaoSupabase.approveParticipant(participantId, code);
+    await navigator.clipboard?.writeText(code);
+    await refreshAdminState();
+    showToast(`Cadastro aprovado. Código de ${participant.name}: ${code}`);
+  } catch (error) {
+    showToast(`Não foi possível aprovar: ${window.BolaoSupabase.describeError(error)}`);
+  }
+}
+
+async function copyAccessCode(code) {
+  await navigator.clipboard?.writeText(code);
+  showToast("Código copiado.");
+}
+
+async function removeParticipant(participantId) {
+  if (!confirm("Remover este participante e seus palpites?")) return;
+
+  try {
+    await window.BolaoSupabase.removeParticipant(participantId);
+    await refreshAdminState();
+    showToast("Participante removido.");
+  } catch (error) {
+    showToast(`Não foi possível remover: ${window.BolaoSupabase.describeError(error)}`);
+  }
 }
 
 function populateSelectors() {
@@ -184,9 +246,9 @@ function renderAdminResults() {
         <div class="admin-result-teams">
           <strong>${formatTeamName(match.home)}</strong>
           <div class="score-inputs">
-            <input class="admin-home-score" type="number" min="0" max="20" inputmode="numeric" value="${result.home}" />
+            <input class="admin-home-score" type="number" min="0" max="20" inputmode="numeric" value="${result.home}" aria-label="Gols de ${escapeHtml(formatTeamName(match.home))}" />
             <span>x</span>
-            <input class="admin-away-score" type="number" min="0" max="20" inputmode="numeric" value="${result.away}" />
+            <input class="admin-away-score" type="number" min="0" max="20" inputmode="numeric" value="${result.away}" aria-label="Gols de ${escapeHtml(formatTeamName(match.away))}" />
           </div>
           <strong>${formatTeamName(match.away)}</strong>
         </div>
@@ -209,34 +271,31 @@ function renderAdminResults() {
   });
 }
 
-function saveAdminResult(matchId, home, away, button) {
+async function saveAdminResult(matchId, home, away, button) {
   if (home === "" || away === "") {
     showToast("Preencha os dois placares do resultado.");
     return;
   }
 
-  const match = state.matches.find((item) => item.id === matchId);
-  if (!match) return;
-
-  match.result = { home: normalizeScore(home), away: normalizeScore(away) };
-  saveState();
-  renderParticipants();
-  markButtonSaved(button);
-  showToast("Resultado salvo. A pagina do bolao ja pode ser atualizada.");
+  try {
+    await window.BolaoSupabase.saveResult(matchId, normalizeScore(home), normalizeScore(away));
+    const match = state.matches.find((item) => item.id === matchId);
+    if (match) match.result = { home: normalizeScore(home), away: normalizeScore(away) };
+    renderParticipants();
+    markButtonSaved(button);
+    showToast("Resultado salvo. O ranking dos participantes será atualizado ao abrir ou atualizar a página.");
+  } catch (error) {
+    showToast(`Não foi possível salvar o resultado: ${window.BolaoSupabase.describeError(error)}`);
+  }
 }
 
-function getParticipantSummaries() {
-  return state.participants
-    .map((participant) => {
-      const guesses = state.guesses[participant.id] || {};
-      const filledGuesses = state.matches.filter((match) => isCompleteScore(guesses[match.id])).length;
-      return {
-        ...participant,
-        points: getParticipantPoints(participant.id),
-        filledGuesses
-      };
-    })
-    .sort((a, b) => b.points - a.points || a.name.localeCompare(b.name));
+function getParticipantSummary(participant) {
+  const guesses = state.guesses[participant.id] || {};
+  const filledGuesses = state.matches.filter((match) => isCompleteScore(guesses[match.id])).length;
+  return {
+    points: getParticipantPoints(participant.id),
+    filledGuesses
+  };
 }
 
 function getParticipantPoints(participantId) {
@@ -254,7 +313,7 @@ function scoreGuess(guess, result) {
 }
 
 function isCompleteScore(score) {
-  return score && score.home !== "" && score.away !== "" && score.home !== null && score.away !== null;
+  return score && score.home !== "" && score.away !== "" && score.home !== null && score.away !== null && score.home !== undefined && score.away !== undefined;
 }
 
 function getOutcome(score) {
@@ -271,6 +330,10 @@ function markButtonSaved(button) {
     button.textContent = originalText;
     button.classList.remove("is-saved");
   }, 2200);
+}
+
+function generateAccessCode() {
+  return `COPA-${Math.random().toString(36).slice(2, 6).toUpperCase()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
 }
 
 function normalizeScore(value) {
@@ -291,11 +354,28 @@ function formatRoundLabel(round) {
 
 function formatTeamName(team) {
   if (TEAM_NAME_PT[team]) return TEAM_NAME_PT[team];
+
+  const positionMatch = team.match(/^([123])([A-L])$/);
+  if (positionMatch) {
+    const [, position, group] = positionMatch;
+    const label = position === "1" ? "1º" : position === "2" ? "2º" : "3º";
+    return `${label} do Grupo ${group}`;
+  }
+
   const winnerMatch = team.match(/^W(\d+)$/);
   if (winnerMatch) return `Vencedor do Jogo ${winnerMatch[1]}`;
+
   const loserMatch = team.match(/^L(\d+)$/);
   if (loserMatch) return `Perdedor do Jogo ${loserMatch[1]}`;
+
+  const thirdPlaceMatch = team.match(/^3([A-L]+)$/);
+  if (thirdPlaceMatch) return `3º de um dos Grupos ${thirdPlaceMatch[1].split("").join(", ")}`;
+
   return team;
+}
+
+function setAdminStatus(message) {
+  els.adminSyncStatus.textContent = message;
 }
 
 function showToast(message) {
