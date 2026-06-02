@@ -631,6 +631,14 @@ small,
   margin-bottom: 14px;
 }
 
+.toolbar-note {
+  max-width: 520px;
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.86rem;
+  line-height: 1.45;
+}
+
 .toolbar.split {
   align-items: end;
 }
@@ -659,8 +667,13 @@ select {
   border: 1px solid var(--line);
   border-radius: 8px;
   color: var(--text);
-  background: rgba(0, 0, 0, 0.24);
+  background: #0e201d;
   outline: none;
+}
+
+option {
+  color: var(--text);
+  background: #0e201d;
 }
 
 select,
@@ -767,6 +780,17 @@ select:focus {
   border-color: rgba(31, 209, 127, 0.7);
   color: #d6ffe9;
   background: rgba(31, 209, 127, 0.2);
+}
+
+.daily-guess-row.is-locked {
+  opacity: 0.72;
+}
+
+.daily-guess-row.is-locked input,
+.home-score:disabled,
+.away-score:disabled {
+  color: var(--muted);
+  background: rgba(255, 255, 255, 0.06);
 }
 
 .guess-feedback,
@@ -994,6 +1018,57 @@ select:focus {
   min-height: 42px;
   color: var(--gold);
   font-weight: 900;
+}
+
+.compact-teams {
+  grid-template-columns: minmax(120px, 1fr) auto minmax(120px, 1fr);
+}
+
+.locked-guess-card {
+  border-color: rgba(244, 201, 93, 0.24);
+}
+
+.group-guess-list,
+.match-info-grid {
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.group-guess-row,
+.match-info-grid span {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-height: 36px;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.16);
+}
+
+.group-guess-row span {
+  color: var(--gold);
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.match-info-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.match-info-grid span {
+  display: grid;
+  align-content: center;
+  color: var(--text);
+}
+
+.match-info-grid strong {
+  display: block;
+  color: var(--muted);
+  font-size: 0.72rem;
+  text-transform: uppercase;
 }
 
 .match-footer {
@@ -1255,6 +1330,10 @@ select:focus {
   }
 
   .score-row {
+    grid-template-columns: 1fr;
+  }
+
+  .match-info-grid {
     grid-template-columns: 1fr;
   }
 

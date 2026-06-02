@@ -1,4 +1,6 @@
 const STORAGE_KEY = "bolao-copa-2026-session";
+const GUESS_LOCK_MINUTES = 5;
+const EASTERN_DAYLIGHT_UTC_OFFSET_HOURS = -4;
 
 const FLAG_BY_TEAM = {
   "Algeria": { code: "dz", label: "DZ" },
@@ -179,7 +181,10 @@ function bindEvents() {
   });
 
   els.roundFilter.addEventListener("change", renderGuesses);
-  els.matchDaySelect.addEventListener("change", renderDailyMatches);
+  els.matchDaySelect.addEventListener("change", () => {
+    renderDailyMatches();
+    renderMyScore();
+  });
   els.groupSelect.addEventListener("change", renderGroupTeams);
 }
 
@@ -372,6 +377,10 @@ function renderDailyMatches() {
   els.dailyMatchList.innerHTML = matches.map((match) => {
     const guess = state.guesses[participantId]?.[match.id] || { home: "", away: "" };
     const feedback = getGuessFeedback(guess, match.result);
+    const guessOpen = isGuessOpen(match);
+    const lockMessage = guessOpen
+      ? `Palpites abertos até ${formatGuessDeadline(match)} ET`
+      : "Palpites encerrados para este jogo";
     return `
       <article class="daily-match" data-daily-match="${match.id}">
         <div class="daily-match-teams">
@@ -379,17 +388,17 @@ function renderDailyMatches() {
           <strong>${isCompleteScore(match.result) ? `${match.result.home} x ${match.result.away}` : `${match.time} ET`}</strong>
           ${teamMarkup(match.away)}
         </div>
-        <div class="daily-guess-row">
+        <div class="daily-guess-row ${guessOpen ? "" : "is-locked"}">
           <span>Seu palpite</span>
           <div class="score-inputs">
-            <input class="daily-home-score" type="number" min="0" max="20" inputmode="numeric" value="${guess.home}" aria-label="Gols de ${escapeHtml(formatTeamName(match.home))}" />
+            <input class="daily-home-score" type="number" min="0" max="20" inputmode="numeric" value="${guess.home}" ${guessOpen ? "" : "disabled"} aria-label="Gols de ${escapeHtml(formatTeamName(match.home))}" />
             <span>x</span>
-            <input class="daily-away-score" type="number" min="0" max="20" inputmode="numeric" value="${guess.away}" aria-label="Gols de ${escapeHtml(formatTeamName(match.away))}" />
+            <input class="daily-away-score" type="number" min="0" max="20" inputmode="numeric" value="${guess.away}" ${guessOpen ? "" : "disabled"} aria-label="Gols de ${escapeHtml(formatTeamName(match.away))}" />
           </div>
-          <button class="secondary-button save-daily-guess" type="button">Salvar</button>
+          <button class="secondary-button save-daily-guess" type="button" ${guessOpen ? "" : "disabled"}>${guessOpen ? "Salvar" : "Encerrado"}</button>
         </div>
         ${feedback ? `<div class="guess-feedback ${feedback.className}">${feedback.label}</div>` : ""}
-        <small>Jogo ${match.number} - ${formatRoundLabel(match.round)} - ${escapeHtml(match.city)}</small>
+        <small>Jogo ${match.number} - ${formatRoundLabel(match.round)} - ${escapeHtml(match.city)} - ${lockMessage}</small>
       </article>
     `;
   }).join("");
@@ -414,6 +423,14 @@ async function saveGuess(participantId, matchId, home, away, button) {
 
   if (home === "" || away === "") {
     showToast("Preencha os dois placares antes de salvar.");
+    return;
+  }
+
+  const match = state.matches.find((item) => item.id === matchId);
+  if (!match || !isGuessOpen(match)) {
+    showToast("O prazo para palpitar neste jogo já encerrou.");
+    renderDailyMatches();
+    renderGuesses();
     return;
   }
 
@@ -488,21 +505,24 @@ function renderMyScore() {
   if (!participant) return;
 
   const total = getParticipantPoints(participant.id);
-  const settledMatches = state.matches.filter((match) => isCompleteScore(match.result));
-  const exact = settledMatches.filter((match) => scoreGuess(state.guesses[participant.id]?.[match.id], match.result) === 5).length;
-  const trend = settledMatches.filter((match) => scoreGuess(state.guesses[participant.id]?.[match.id], match.result) === 2).length;
+  const selectedDay = els.matchDaySelect.value || getDefaultMatchDay(getMatchDays());
+  const dayMatches = state.matches.filter((match) => match.date === selectedDay);
+  const daySettledMatches = dayMatches.filter((match) => isCompleteScore(match.result));
+  const dayPoints = dayMatches.reduce((sum, match) => sum + scoreGuess(state.guesses[participant.id]?.[match.id], match.result), 0);
+  const exact = daySettledMatches.filter((match) => scoreGuess(state.guesses[participant.id]?.[match.id], match.result) === 5).length;
+  const trend = daySettledMatches.filter((match) => scoreGuess(state.guesses[participant.id]?.[match.id], match.result) === 2).length;
 
   els.myScoreTitle.textContent = participant.name;
   els.myScoreTotal.textContent = `${total} pts`;
   els.myScoreBreakdown.innerHTML = `
     <div class="score-summary">
-      <article><strong>${total}</strong><small>pontos totais</small></article>
+      <article><strong>${dayPoints}</strong><small>pontos em ${formatDate(selectedDay)}</small></article>
       <article><strong>${exact}</strong><small>placares exatos</small></article>
       <article><strong>${trend}</strong><small>tendências corretas</small></article>
-      <article><strong>${settledMatches.length}</strong><small>jogos com resultado</small></article>
+      <article><strong>${daySettledMatches.length}</strong><small>jogos com resultado</small></article>
     </div>
     <div class="score-list">
-      ${state.matches.map((match) => renderScoreRow(match, participant.id)).join("")}
+      ${dayMatches.map((match) => renderScoreRow(match, participant.id)).join("")}
     </div>
   `;
 }
@@ -533,13 +553,12 @@ function renderScoreRow(match, participantId) {
 }
 
 function renderGuesses() {
-  const participantId = state.currentParticipantId;
   const round = els.roundFilter.value;
   const matches = state.matches.filter((match) => round === "Todas" || match.round === round);
 
   els.guessList.innerHTML = "";
-  if (!participantId) {
-    els.guessList.innerHTML = `<article class="match-card empty-state">Entre no bolão para preencher seus palpites.</article>`;
+  if (!state.currentParticipantId) {
+    els.guessList.innerHTML = `<article class="match-card empty-state">Entre no bolão para ver os palpites do grupo.</article>`;
     return;
   }
 
@@ -551,19 +570,19 @@ function renderGuesses() {
       els.guessList.insertAdjacentHTML("beforeend", `<h3 class="match-group-title">${group}</h3>`);
     }
 
-    const guess = state.guesses[participantId]?.[match.id] || { home: "", away: "" };
-    const card = createMatchCard(match, guess, "guess");
-    const [homeInput, awayInput] = card.querySelectorAll("input");
-
-    homeInput.addEventListener("change", () => saveGuess(participantId, match.id, homeInput.value, awayInput.value));
-    awayInput.addEventListener("change", () => saveGuess(participantId, match.id, homeInput.value, awayInput.value));
-    els.guessList.append(card);
+    els.guessList.insertAdjacentHTML("beforeend", renderGroupGuessCard(match));
   });
 }
 
 function renderResults() {
   els.resultList.innerHTML = state.matches.map((match) => {
     const result = match.result || { home: "", away: "" };
+    const guessCount = countGuessesForMatch(match.id);
+    const status = isCompleteScore(match.result)
+      ? "Resultado registrado"
+      : isGuessOpen(match)
+        ? `Palpites abertos até ${formatGuessDeadline(match)} ET`
+        : "Palpites encerrados";
     return `
       <article class="match-card">
         <div class="match-meta">
@@ -579,7 +598,12 @@ function renderResults() {
           </div>
           <strong class="away-team">${teamMarkup(match.away)}</strong>
         </div>
-        <div class="match-footer">${escapeHtml(match.city)} - ${escapeHtml(match.venue)}</div>
+        <div class="match-info-grid">
+          <span><strong>Local</strong>${escapeHtml(match.city)}</span>
+          <span><strong>Estádio</strong>${escapeHtml(match.venue)}</span>
+          <span><strong>Palpites</strong>${guessCount}/${state.participants.length}</span>
+          <span><strong>Status</strong>${status}</span>
+        </div>
       </article>
     `;
   }).join("");
@@ -599,8 +623,58 @@ function renderParticipants() {
     : `<article class="participant-card empty-state">O grupo ainda não tem participantes aprovados.</article>`;
 }
 
+function renderGroupGuessCard(match) {
+  const closedForGuesses = !isGuessOpen(match);
+  const guesses = getGuessesForMatch(match.id);
+
+  if (!closedForGuesses) {
+    return `
+      <article class="match-card locked-guess-card">
+        <div class="match-meta">
+          <span class="pill">${formatRoundLabel(match.round)}</span>
+          <small>Jogo ${match.number} - ${formatDate(match.date)} - ${match.time} ET</small>
+        </div>
+        <div class="teams-row compact-teams">
+          <strong class="home-team">${teamMarkup(match.home)}</strong>
+          <strong class="result-readonly">x</strong>
+          <strong class="away-team">${teamMarkup(match.away)}</strong>
+        </div>
+        <div class="match-footer">
+          <span>Os palpites do grupo ficam ocultos até o encerramento.</span>
+          <strong>abre após ${formatGuessDeadline(match)} ET</strong>
+        </div>
+      </article>
+    `;
+  }
+
+  return `
+    <article class="match-card">
+      <div class="match-meta">
+        <span class="pill">${formatRoundLabel(match.round)}</span>
+        <small>Jogo ${match.number} - ${formatDate(match.date)} - ${match.time} ET</small>
+      </div>
+      <div class="teams-row compact-teams">
+        <strong class="home-team">${teamMarkup(match.home)}</strong>
+        <strong class="result-readonly">x</strong>
+        <strong class="away-team">${teamMarkup(match.away)}</strong>
+      </div>
+      <div class="group-guess-list">
+        ${guesses.length
+          ? guesses.map(({ participant, guess }) => `
+            <div class="group-guess-row">
+              <strong>${escapeHtml(participant.name)}</strong>
+              <span>${guess.home} x ${guess.away}</span>
+            </div>
+          `).join("")
+          : `<div class="empty-state">Nenhum participante registrou palpite para este jogo.</div>`}
+      </div>
+    </article>
+  `;
+}
+
 function createMatchCard(match, score, mode) {
   const card = els.template.content.firstElementChild.cloneNode(true);
+  const guessOpen = isGuessOpen(match);
   card.querySelector(".pill").textContent = formatRoundLabel(match.round);
   card.querySelector("small").textContent = `Jogo ${match.number} - ${formatDate(match.date)} - ${match.time} ET`;
   card.querySelector(".home-team").innerHTML = teamMarkup(match.home);
@@ -610,12 +684,14 @@ function createMatchCard(match, score, mode) {
   const awayInput = card.querySelector(".away-score");
   homeInput.value = score.home ?? "";
   awayInput.value = score.away ?? "";
+  homeInput.disabled = !guessOpen;
+  awayInput.disabled = !guessOpen;
 
   const footer = card.querySelector(".match-footer");
   const feedback = getGuessFeedback(score, match.result);
   footer.innerHTML = isCompleteScore(match.result)
     ? `<span>Resultado: ${match.result.home} x ${match.result.away}</span><strong class="${feedback?.className || ""}">${feedback?.label || `${scoreGuess(score, match.result)} pts`}</strong>`
-    : `<span>${escapeHtml(match.city)} - ${escapeHtml(match.venue)}</span><strong>${isCompleteScore(score) ? "palpite salvo" : "preencha o placar"}</strong>`;
+    : `<span>${escapeHtml(match.city)} - ${escapeHtml(match.venue)}</span><strong>${getGuessStatusLabel(match, score)}</strong>`;
 
   return card;
 }
@@ -639,6 +715,20 @@ function getRanking() {
     .sort((a, b) => b.points - a.points || a.name.localeCompare(b.name));
 }
 
+function getGuessesForMatch(matchId) {
+  return state.participants
+    .map((participant) => ({
+      participant,
+      guess: state.guesses[participant.id]?.[matchId]
+    }))
+    .filter((item) => isCompleteScore(item.guess))
+    .sort((a, b) => a.participant.name.localeCompare(b.participant.name));
+}
+
+function countGuessesForMatch(matchId) {
+  return getGuessesForMatch(matchId).length;
+}
+
 function getParticipantPoints(participantId) {
   return state.matches.reduce((total, match) => {
     if (!isCompleteScore(match.result)) return total;
@@ -655,7 +745,7 @@ function scoreGuess(guess, result) {
 
 function getGuessFeedback(guess, result) {
   if (!isCompleteScore(result)) return null;
-  if (!isCompleteScore(guess)) return { label: "Sem palpite", className: "feedback-missed" };
+  if (!isCompleteScore(guess)) return { label: "Sem palpite: 0 pts", className: "feedback-missed" };
 
   const points = scoreGuess(guess, result);
   if (points === 5) return { label: "Placar correto +5 pts", className: "feedback-exact" };
@@ -665,6 +755,34 @@ function getGuessFeedback(guess, result) {
 
 function isCompleteScore(score) {
   return score && score.home !== "" && score.away !== "" && score.home !== null && score.away !== null && score.home !== undefined && score.away !== undefined;
+}
+
+function getGuessStatusLabel(match, score) {
+  if (!isGuessOpen(match)) return "palpites encerrados";
+  return isCompleteScore(score) ? "palpite salvo" : "preencha o placar";
+}
+
+function isGuessOpen(match) {
+  return Date.now() < getGuessDeadline(match).getTime();
+}
+
+function getGuessDeadline(match) {
+  return new Date(getMatchStartDate(match).getTime() - GUESS_LOCK_MINUTES * 60 * 1000);
+}
+
+function getMatchStartDate(match) {
+  const [year, month, day] = match.date.split("-").map(Number);
+  const [hour, minute] = match.time.split(":").map(Number);
+  const utcHour = hour - EASTERN_DAYLIGHT_UTC_OFFSET_HOURS;
+  return new Date(Date.UTC(year, month - 1, day, utcHour, minute));
+}
+
+function formatGuessDeadline(match) {
+  const deadline = getGuessDeadline(match);
+  const easternHour = (deadline.getUTCHours() + EASTERN_DAYLIGHT_UTC_OFFSET_HOURS + 24) % 24;
+  const hours = String(easternHour).padStart(2, "0");
+  const minutes = String(deadline.getUTCMinutes()).padStart(2, "0");
+  return `${hours}:${minutes}`;
 }
 
 function getOutcome(score) {

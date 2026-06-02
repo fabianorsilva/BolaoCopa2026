@@ -8,7 +8,7 @@
     <meta property="og:description" content="Palpites, ranking e resultados da Copa do Mundo 2026." />
     <meta property="og:type" content="website" />
     <title>Bolão Copa 2026</title>
-    <link rel="stylesheet" href="styles.css?v=20" />
+    <link rel="stylesheet" href="styles.css?v=24" />
   </head>
   <body>
     <div class="app-shell">
@@ -28,7 +28,7 @@
         </div>
         <div class="top-actions hidden" id="topActions">
           <span class="user-chip" id="currentUserChip">Sem acesso</span>
-          <button class="secondary-button" id="logoutButton" type="button">Trocar</button>
+          <button class="secondary-button" id="logoutButton" type="button">Sair</button>
           <button class="primary-button" id="refreshButton" type="button">Atualizar</button>
         </div>
       </header>
@@ -134,9 +134,9 @@
         <section class="panel tabs-panel">
           <div class="tab-list" role="tablist" aria-label="Áreas do bolão">
             <button class="tab active" type="button" data-tab="minha-pontuacao">Minha pontuação</button>
-            <button class="tab" type="button" data-tab="palpites">Palpites</button>
+            <button class="tab" type="button" data-tab="palpites">Palpites do grupo</button>
             <button class="tab" type="button" data-tab="jogos">Tabela</button>
-            <button class="tab" type="button" data-tab="participantes">Participantes</button>
+            <button class="tab" type="button" data-tab="participantes">Ranking geral</button>
           </div>
 
           <section class="tab-page active" id="tab-minha-pontuacao">
@@ -152,10 +152,11 @@
 
           <section class="tab-page" id="tab-palpites">
             <div class="toolbar">
-              <label>
+              <label class="hidden">
                 Palpites de
                 <select id="playerSelect"></select>
               </label>
+              <p class="toolbar-note">Os palpites dos participantes aparecem somente depois que o prazo do jogo encerrar.</p>
               <label>
                 Fase
                 <select id="roundFilter"></select>
@@ -178,8 +179,8 @@
           <section class="tab-page" id="tab-participantes">
             <div class="toolbar split">
               <div>
-                <p class="eyebrow">Grupo aprovado</p>
-                <h2>Participantes</h2>
+                <p class="eyebrow">Classificação geral</p>
+                <h2>Ranking geral</h2>
               </div>
             </div>
             <div class="participant-grid" id="participantGrid"></div>
@@ -208,9 +209,9 @@
     </template>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="supabase-config.js?v=20"></script>
-    <script src="supabase-state.js?v=20"></script>
-    <script src="data.js?v=20"></script>
-    <script src="app.js?v=20"></script>
+    <script src="supabase-config.js?v=24"></script>
+    <script src="supabase-state.js?v=24"></script>
+    <script src="data.js?v=24"></script>
+    <script src="app.js?v=24"></script>
   </body>
 </html>
