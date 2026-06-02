@@ -207,14 +207,18 @@
   }
 
   async function saveResult(matchId, home, away) {
-    await run((client) => client
+    const row = await run((client) => client
       .from(TABLES.results)
       .upsert({
         match_id: matchId,
         home_score: Number(home),
         away_score: Number(away),
         updated_at: new Date().toISOString()
-      }, { onConflict: "match_id" }));
+      }, { onConflict: "match_id" })
+      .select("match_id,home_score,away_score")
+      .single());
+
+    return mapResult(row);
   }
 
   async function testConnection() {

@@ -279,13 +279,19 @@ async function saveAdminResult(matchId, home, away, button) {
   }
 
   try {
-    await window.BolaoSupabase.saveResult(matchId, normalizeScore(home), normalizeScore(away));
+    button.disabled = true;
+    button.textContent = "Salvando...";
+    const savedResult = await window.BolaoSupabase.saveResult(matchId, normalizeScore(home), normalizeScore(away));
     const match = state.matches.find((item) => item.id === matchId);
-    if (match) match.result = { home: normalizeScore(home), away: normalizeScore(away) };
+    if (match) match.result = { home: savedResult.home, away: savedResult.away };
     renderParticipants();
     markButtonSaved(button);
-    showToast("Resultado salvo. O ranking dos participantes será atualizado ao abrir ou atualizar a página.");
+    setAdminStatus(`Resultado do jogo ${match?.number || matchId} salvo no Supabase: ${savedResult.home} x ${savedResult.away}.`);
+    showToast("Resultado salvo no Supabase.");
   } catch (error) {
+    button.disabled = false;
+    button.textContent = "Salvar resultado";
+    setAdminStatus(`Falha ao salvar resultado: ${window.BolaoSupabase.describeError(error)}`);
     showToast(`Não foi possível salvar o resultado: ${window.BolaoSupabase.describeError(error)}`);
   }
 }
@@ -330,6 +336,7 @@ function markButtonSaved(button) {
   window.setTimeout(() => {
     button.textContent = originalText;
     button.classList.remove("is-saved");
+    button.disabled = false;
   }, 2200);
 }
 
