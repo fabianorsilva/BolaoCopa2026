@@ -1,4 +1,6 @@
 const ADMIN_CODE = "ADMIN2026";
+const EASTERN_DAYLIGHT_UTC_OFFSET_HOURS = -4;
+const BRASILIA_UTC_OFFSET_HOURS = -3;
 
 const TEAM_NAME_PT = {
   "Algeria": "Argélia",
@@ -53,7 +55,7 @@ const TEAM_NAME_PT = {
 
 const state = {
   participants: [],
-  matches: structuredClone(WORLD_CUP_MATCHES),
+  matches: cloneData(WORLD_CUP_MATCHES),
   guesses: {}
 };
 
@@ -223,7 +225,7 @@ async function removeParticipant(participantId) {
 }
 
 function populateSelectors() {
-  const days = [...new Set(state.matches.map((match) => match.date))].sort();
+  const days = [...new Set(state.matches.map((match) => getMatchDateBR(match)))].sort();
   els.adminDaySelect.innerHTML = days.map((day) => `<option value="${day}">${formatDate(day)}</option>`).join("");
   els.adminDaySelect.value = days[0];
 
@@ -236,7 +238,7 @@ function renderAdminResults() {
   const day = els.adminDaySelect.value;
   const round = els.adminRoundSelect.value || "Todas";
   const matches = state.matches.filter((match) =>
-    (!day || match.date === day) &&
+    (!day || getMatchDateBR(match) === day) &&
     (round === "Todas" || match.round === round)
   );
 
@@ -254,7 +256,7 @@ function renderAdminResults() {
           <strong>${formatTeamName(match.away)}</strong>
         </div>
         <div class="admin-result-footer">
-          <small>Jogo ${match.number} - ${formatDate(match.date)} - ${formatRoundLabel(match.round)}</small>
+          <small>Jogo ${match.number} - ${formatDate(getMatchDateBR(match))} - ${formatMatchTimeBR(match)} BRT - ${formatRoundLabel(match.round)}</small>
           <button class="secondary-button save-admin-result" type="button">Salvar resultado</button>
         </div>
       </article>
@@ -353,6 +355,34 @@ function formatDate(value) {
   return `${day}/${month}/${year}`;
 }
 
+function getMatchStartDate(match) {
+  const [year, month, day] = match.date.split("-").map(Number);
+  const [hour, minute] = match.time.split(":").map(Number);
+  const utcHour = hour - EASTERN_DAYLIGHT_UTC_OFFSET_HOURS;
+  return new Date(Date.UTC(year, month - 1, day, utcHour, minute));
+}
+
+function formatMatchTimeBR(match) {
+  const local = getOffsetDateParts(getMatchStartDate(match), BRASILIA_UTC_OFFSET_HOURS);
+  return `${String(local.hour).padStart(2, "0")}:${String(local.minute).padStart(2, "0")}`;
+}
+
+function getMatchDateBR(match) {
+  const local = getOffsetDateParts(getMatchStartDate(match), BRASILIA_UTC_OFFSET_HOURS);
+  return `${local.year}-${String(local.month).padStart(2, "0")}-${String(local.day).padStart(2, "0")}`;
+}
+
+function getOffsetDateParts(date, utcOffsetHours) {
+  const shifted = new Date(date.getTime() + utcOffsetHours * 60 * 60 * 1000);
+  return {
+    year: shifted.getUTCFullYear(),
+    month: shifted.getUTCMonth() + 1,
+    day: shifted.getUTCDate(),
+    hour: shifted.getUTCHours(),
+    minute: shifted.getUTCMinutes()
+  };
+}
+
 function formatRoundLabel(round) {
   if (round === "Todas") return "Todas";
   if (round === "R32") return "16 avos de final";
@@ -402,4 +432,8 @@ function escapeHtml(value) {
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#039;");
+}
+
+function cloneData(value) {
+  return JSON.parse(JSON.stringify(value));
 }

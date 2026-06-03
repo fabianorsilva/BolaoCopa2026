@@ -1,6 +1,7 @@
 const STORAGE_KEY = "bolao-copa-2026-session";
 const GUESS_LOCK_MINUTES = 5;
 const EASTERN_DAYLIGHT_UTC_OFFSET_HOURS = -4;
+const BRASILIA_UTC_OFFSET_HOURS = -3;
 
 const FLAG_BY_TEAM = {
   "Algeria": { code: "dz", label: "DZ" },
@@ -107,7 +108,7 @@ const TEAM_NAME_PT = {
 const state = {
   currentParticipantId: localStorage.getItem(STORAGE_KEY) || "",
   participants: [],
-  matches: structuredClone(WORLD_CUP_MATCHES),
+  matches: cloneData(WORLD_CUP_MATCHES),
   guesses: {}
 };
 
@@ -135,6 +136,9 @@ function bindElements() {
     currentUserChip: document.querySelector("#currentUserChip"),
     logoutButton: document.querySelector("#logoutButton"),
     refreshButton: document.querySelector("#refreshButton"),
+    loggedHero: document.querySelector("#loggedHero"),
+    heroNextMatch: document.querySelector("#heroNextMatch"),
+    heroStats: document.querySelector("#heroStats"),
     leaderboard: document.querySelector("#leaderboard"),
     matchDaySelect: document.querySelector("#matchDaySelect"),
     dailyMatchList: document.querySelector("#dailyMatchList"),
@@ -320,6 +324,7 @@ function render() {
   els.currentUserChip.textContent = participant?.name || "Sem acesso";
 
   renderSelectors();
+  renderLoggedHero();
   renderLeaderboard();
   renderDailyMatches();
   renderGroupTeams();
@@ -352,6 +357,51 @@ function renderSelectors() {
   els.groupSelect.value = groups.some((group) => group.id === currentGroup) ? currentGroup : groups[0]?.id || "";
 }
 
+function renderLoggedHero() {
+  const participant = getCurrentParticipant();
+  if (!participant || !els.loggedHero) return;
+
+  const ranking = getRanking();
+  const position = ranking.findIndex((row) => row.id === participant.id) + 1;
+  const total = getParticipantPoints(participant.id);
+  const openMatches = state.matches.filter((match) => isGuessOpen(match));
+  const pendingOpen = openMatches.filter((match) => !isCompleteScore(state.guesses[participant.id]?.[match.id])).length;
+  const nextMatch = openMatches.sort((a, b) => getMatchStartDate(a) - getMatchStartDate(b))[0];
+  const leader = ranking[0];
+
+  els.heroStats.innerHTML = `
+    <article><strong>${position || "-"}</strong><span>sua posição</span></article>
+    <article><strong>${total}</strong><span>pontos totais</span></article>
+    <article><strong>${pendingOpen}</strong><span>palpites pendentes</span></article>
+    <article><strong>${leader ? escapeHtml(leader.name) : "-"}</strong><span>líder atual</span></article>
+  `;
+
+  els.heroNextMatch.innerHTML = nextMatch ? `
+    <div>
+      <p class="eyebrow">Próximo palpite</p>
+      <div class="hero-match-line">
+        ${teamMarkup(nextMatch.home)}
+        <strong>${formatMatchTimeBR(nextMatch)} BRT</strong>
+        ${teamMarkup(nextMatch.away)}
+      </div>
+      <small>${formatDate(getMatchDateBR(nextMatch))} - ${formatRoundLabel(nextMatch.round)} - prazo até ${formatGuessDeadlineLabel(nextMatch)}</small>
+    </div>
+    <button class="primary-button" type="button" data-jump-match-day="${getMatchDateBR(nextMatch)}">Palpitar agora</button>
+  ` : `
+    <div>
+      <p class="eyebrow">Palpites</p>
+      <h2>Todos os prazos abertos foram preenchidos ou encerrados.</h2>
+    </div>
+  `;
+
+  els.heroNextMatch.querySelector("[data-jump-match-day]")?.addEventListener("click", (event) => {
+    els.matchDaySelect.value = event.currentTarget.dataset.jumpMatchDay;
+    renderDailyMatches();
+    renderMyScore();
+    window.scrollTo({ top: els.dailyMatchList.getBoundingClientRect().top + window.scrollY - 120, behavior: "smooth" });
+  });
+}
+
 function renderLeaderboard() {
   const ranking = getRanking();
   els.leaderboard.innerHTML = ranking.length
@@ -371,7 +421,7 @@ function renderLeaderboard() {
 
 function renderDailyMatches() {
   const selectedDay = els.matchDaySelect.value || getDefaultMatchDay(getMatchDays());
-  const matches = state.matches.filter((match) => match.date === selectedDay);
+  const matches = state.matches.filter((match) => getMatchDateBR(match) === selectedDay);
   const participantId = state.currentParticipantId;
 
   els.dailyMatchList.innerHTML = matches.map((match) => {
@@ -379,13 +429,13 @@ function renderDailyMatches() {
     const feedback = getGuessFeedback(guess, match.result);
     const guessOpen = isGuessOpen(match);
     const lockMessage = guessOpen
-      ? `Palpites abertos até ${formatGuessDeadline(match)} ET`
+      ? `Palpites abertos até ${formatGuessDeadlineLabel(match)}`
       : "Palpites encerrados para este jogo";
     return `
       <article class="daily-match" data-daily-match="${match.id}">
         <div class="daily-match-teams">
           ${teamMarkup(match.home)}
-          <strong>${isCompleteScore(match.result) ? `${match.result.home} x ${match.result.away}` : `${match.time} ET`}</strong>
+          <strong>${isCompleteScore(match.result) ? `${match.result.home} x ${match.result.away}` : `${formatMatchTimeBR(match)} BRT`}</strong>
           ${teamMarkup(match.away)}
         </div>
         <div class="daily-guess-row ${guessOpen ? "" : "is-locked"}">
@@ -506,7 +556,7 @@ function renderMyScore() {
 
   const total = getParticipantPoints(participant.id);
   const selectedDay = els.matchDaySelect.value || getDefaultMatchDay(getMatchDays());
-  const dayMatches = state.matches.filter((match) => match.date === selectedDay);
+  const dayMatches = state.matches.filter((match) => getMatchDateBR(match) === selectedDay);
   const daySettledMatches = dayMatches.filter((match) => isCompleteScore(match.result));
   const dayPoints = dayMatches.reduce((sum, match) => sum + scoreGuess(state.guesses[participant.id]?.[match.id], match.result), 0);
   const exact = daySettledMatches.filter((match) => scoreGuess(state.guesses[participant.id]?.[match.id], match.result) === 5).length;
@@ -564,7 +614,7 @@ function renderGuesses() {
 
   let currentGroup = "";
   matches.forEach((match) => {
-    const group = `${formatRoundLabel(match.round)} - ${formatDate(match.date)}`;
+    const group = `${formatRoundLabel(match.round)} - ${formatDate(getMatchDateBR(match))}`;
     if (group !== currentGroup) {
       currentGroup = group;
       els.guessList.insertAdjacentHTML("beforeend", `<h3 class="match-group-title">${group}</h3>`);
@@ -579,15 +629,15 @@ function renderResults() {
     const result = match.result || { home: "", away: "" };
     const guessCount = countGuessesForMatch(match.id);
     const status = isCompleteScore(match.result)
-      ? "Resultado registrado"
+        ? "Resultado registrado"
       : isGuessOpen(match)
-        ? `Palpites abertos até ${formatGuessDeadline(match)} ET`
+        ? `Palpites abertos até ${formatGuessDeadlineLabel(match)}`
         : "Palpites encerrados";
     return `
       <article class="match-card">
         <div class="match-meta">
           <span class="pill">${formatRoundLabel(match.round)}</span>
-          <small>Jogo ${match.number} - ${formatDate(match.date)} - ${match.time} ET</small>
+          <small>Jogo ${match.number} - ${formatDate(getMatchDateBR(match))} - ${formatMatchTimeBR(match)} BRT</small>
         </div>
         <div class="teams-row">
           <strong class="home-team">${teamMarkup(match.home)}</strong>
@@ -599,6 +649,7 @@ function renderResults() {
           <strong class="away-team">${teamMarkup(match.away)}</strong>
         </div>
         <div class="match-info-grid">
+          <span><strong>Data</strong>${formatDate(getMatchDateBR(match))}</span>
           <span><strong>Local</strong>${escapeHtml(match.city)}</span>
           <span><strong>Estádio</strong>${escapeHtml(match.venue)}</span>
           <span><strong>Palpites</strong>${guessCount}/${state.participants.length}</span>
@@ -632,7 +683,7 @@ function renderGroupGuessCard(match) {
       <article class="match-card locked-guess-card">
         <div class="match-meta">
           <span class="pill">${formatRoundLabel(match.round)}</span>
-          <small>Jogo ${match.number} - ${formatDate(match.date)} - ${match.time} ET</small>
+          <small>Jogo ${match.number} - ${formatDate(getMatchDateBR(match))} - ${formatMatchTimeBR(match)} BRT</small>
         </div>
         <div class="teams-row compact-teams">
           <strong class="home-team">${teamMarkup(match.home)}</strong>
@@ -641,7 +692,7 @@ function renderGroupGuessCard(match) {
         </div>
         <div class="match-footer">
           <span>Os palpites do grupo ficam ocultos até o encerramento.</span>
-          <strong>abre após ${formatGuessDeadline(match)} ET</strong>
+          <strong>abre após ${formatGuessDeadlineLabel(match)}</strong>
         </div>
       </article>
     `;
@@ -651,7 +702,7 @@ function renderGroupGuessCard(match) {
     <article class="match-card">
       <div class="match-meta">
         <span class="pill">${formatRoundLabel(match.round)}</span>
-        <small>Jogo ${match.number} - ${formatDate(match.date)} - ${match.time} ET</small>
+        <small>Jogo ${match.number} - ${formatDate(getMatchDateBR(match))} - ${formatMatchTimeBR(match)} BRT</small>
       </div>
       <div class="teams-row compact-teams">
         <strong class="home-team">${teamMarkup(match.home)}</strong>
@@ -676,7 +727,7 @@ function createMatchCard(match, score, mode) {
   const card = els.template.content.firstElementChild.cloneNode(true);
   const guessOpen = isGuessOpen(match);
   card.querySelector(".pill").textContent = formatRoundLabel(match.round);
-  card.querySelector("small").textContent = `Jogo ${match.number} - ${formatDate(match.date)} - ${match.time} ET`;
+  card.querySelector("small").textContent = `Jogo ${match.number} - ${formatDate(getMatchDateBR(match))} - ${formatMatchTimeBR(match)} BRT`;
   card.querySelector(".home-team").innerHTML = teamMarkup(match.home);
   card.querySelector(".away-team").innerHTML = teamMarkup(match.away);
 
@@ -779,10 +830,38 @@ function getMatchStartDate(match) {
 
 function formatGuessDeadline(match) {
   const deadline = getGuessDeadline(match);
-  const easternHour = (deadline.getUTCHours() + EASTERN_DAYLIGHT_UTC_OFFSET_HOURS + 24) % 24;
-  const hours = String(easternHour).padStart(2, "0");
+  const local = getOffsetDateParts(deadline, BRASILIA_UTC_OFFSET_HOURS);
+  const hours = String(local.hour).padStart(2, "0");
   const minutes = String(deadline.getUTCMinutes()).padStart(2, "0");
   return `${hours}:${minutes}`;
+}
+
+function formatGuessDeadlineLabel(match) {
+  const deadline = getGuessDeadline(match);
+  const deadlineDate = getDateKeyForOffset(deadline, BRASILIA_UTC_OFFSET_HOURS);
+  const time = `${formatGuessDeadline(match)} BRT`;
+  return deadlineDate === getMatchDateBR(match) ? time : `${time} de ${formatDate(deadlineDate)}`;
+}
+
+function formatMatchTimeBR(match) {
+  const local = getOffsetDateParts(getMatchStartDate(match), BRASILIA_UTC_OFFSET_HOURS);
+  return `${String(local.hour).padStart(2, "0")}:${String(local.minute).padStart(2, "0")}`;
+}
+
+function getMatchDateBR(match) {
+  const local = getOffsetDateParts(getMatchStartDate(match), BRASILIA_UTC_OFFSET_HOURS);
+  return `${local.year}-${String(local.month).padStart(2, "0")}-${String(local.day).padStart(2, "0")}`;
+}
+
+function getOffsetDateParts(date, utcOffsetHours) {
+  const shifted = new Date(date.getTime() + utcOffsetHours * 60 * 60 * 1000);
+  return {
+    year: shifted.getUTCFullYear(),
+    month: shifted.getUTCMonth() + 1,
+    day: shifted.getUTCDate(),
+    hour: shifted.getUTCHours(),
+    minute: shifted.getUTCMinutes()
+  };
 }
 
 function getOutcome(score) {
@@ -792,12 +871,17 @@ function getOutcome(score) {
 }
 
 function getMatchDays() {
-  return [...new Set(state.matches.map((match) => match.date))].sort();
+  return [...new Set(state.matches.map((match) => getMatchDateBR(match)))].sort();
 }
 
 function getDefaultMatchDay(matchDays) {
-  const today = new Date().toISOString().slice(0, 10);
+  const today = getDateKeyForOffset(new Date(), BRASILIA_UTC_OFFSET_HOURS);
   return matchDays.find((day) => day >= today) || matchDays[0];
+}
+
+function getDateKeyForOffset(date, utcOffsetHours) {
+  const local = getOffsetDateParts(date, utcOffsetHours);
+  return `${local.year}-${String(local.month).padStart(2, "0")}-${String(local.day).padStart(2, "0")}`;
 }
 
 function getGroups() {
@@ -939,6 +1023,10 @@ function escapeHtml(value) {
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#039;");
+}
+
+function cloneData(value) {
+  return JSON.parse(JSON.stringify(value));
 }
 
 function showAuthMessage(message) {
