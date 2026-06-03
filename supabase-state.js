@@ -221,6 +221,13 @@
     return mapResult(row);
   }
 
+  async function clearResult(matchId) {
+    await run((client) => client
+      .from(TABLES.results)
+      .delete()
+      .eq("match_id", matchId));
+  }
+
   async function testConnection() {
     try {
       await run((client) => client.from(TABLES.participants).select("id").limit(1));
@@ -243,6 +250,7 @@
     approveParticipant,
     removeParticipant,
     saveGuess,
-    saveResult
+    saveResult,
+    clearResult
   };
 })();

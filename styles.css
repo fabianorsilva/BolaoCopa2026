@@ -1321,6 +1321,14 @@ select:focus {
   gap: 10px;
 }
 
+.admin-result-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
 .admin-result-footer .secondary-button.is-saved {
   border-color: rgba(31, 209, 127, 0.7);
   color: #d6ffe9;
@@ -1497,6 +1505,14 @@ select:focus {
   .admin-result-footer {
     align-items: stretch;
     flex-direction: column;
+  }
+
+  .admin-result-actions {
+    justify-content: stretch;
+  }
+
+  .admin-result-actions .secondary-button {
+    flex: 1 1 150px;
   }
 
   .daily-match-teams {
