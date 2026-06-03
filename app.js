@@ -1,6 +1,5 @@
 const STORAGE_KEY = "bolao-copa-2026-session";
 const GUESS_LOCK_MINUTES = 5;
-const EASTERN_DAYLIGHT_UTC_OFFSET_HOURS = -4;
 const BRASILIA_UTC_OFFSET_HOURS = -3;
 
 const FLAG_BY_TEAM = {
@@ -824,7 +823,7 @@ function getGuessDeadline(match) {
 function getMatchStartDate(match) {
   const [year, month, day] = match.date.split("-").map(Number);
   const [hour, minute] = match.time.split(":").map(Number);
-  const utcHour = hour - EASTERN_DAYLIGHT_UTC_OFFSET_HOURS;
+  const utcHour = hour - BRASILIA_UTC_OFFSET_HOURS;
   return new Date(Date.UTC(year, month - 1, day, utcHour, minute));
 }
 
