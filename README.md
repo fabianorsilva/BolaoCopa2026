@@ -1,123 +1,55 @@
-# Bolão Copa 2026
+# ⚽ Bolão Copa do Mundo 2026
 
-Um bolão online para um grupo fechado acompanhar a Copa do Mundo 2026, com cadastro, palpites, ranking, pontuação por jogo e painel administrativo.
+## Mostre que você entende de futebol!
 
-## Como funciona para o participante
+A Copa do Mundo 2026 está chegando e chegou a sua vez de provar que conhece os jogos melhor do que seus amigos.
 
-1. Acesse o link do bolão.
-2. Solicite o cadastro informando nome e e-mail.
-3. Aguarde a aprovação do administrador.
-4. Receba o código de acesso por e-mail, WhatsApp ou outro canal combinado.
-5. Entre com seu e-mail e código.
-6. Registre seus palpites nos jogos disponíveis.
-7. Acompanhe sua pontuação, o ranking geral e os palpites do grupo.
+Participe do nosso Bolão Oficial e dispute posição no ranking, acompanhe sua pontuação em tempo real e concorra ao título de maior especialista da Copa.
 
-## Regras principais
+### Como funciona?
 
-* Os horários dos jogos aparecem no horário de Brasília.
-* O participante pode palpitar até 5 minutos antes do início da partida.
-* Depois desse prazo, o palpite do jogo fica bloqueado.
-* Os palpites dos outros participantes só aparecem depois que o prazo do jogo encerrar.
-* Se o participante não fizer palpite em uma partida, recebe 0 ponto nessa partida.
+✅ Faça seu cadastro gratuitamente.
 
-## Pontuação
+✅ Aguarde a aprovação do administrador.
 
-* Placar exato: 5 pontos.
-* Tendência correta: 2 pontos.
-* Palpite errado: 0 ponto.
-* Sem palpite: 0 ponto.
+✅ Receba seu código de acesso.
 
-### Exemplo
+✅ Dê seus palpites antes de cada partida.
 
-* Resultado: Brasil 2 x 1 Argentina.
-* Palpite 2 x 1: 5 pontos.
-* Palpite 1 x 0: 2 pontos, pois acertou o vencedor.
-* Palpite 1 x 1: 0 ponto.
+✅ Acompanhe sua evolução no ranking geral.
 
-## Tela do participante
+✅ Compare seus resultados com os demais participantes.
 
-A tela logada mostra:
+### Sistema de pontuação
 
-* Próximo jogo para palpitar;
-* Posição do participante no ranking;
-* Pontos totais;
-* Palpites pendentes;
-* Líder atual;
-* Jogos do dia;
-* Classificação dos grupos;
-* Pontuação do dia;
-* Palpites do grupo após o fechamento;
-* Tabela completa.
+🏆 Placar exato: **5 pontos**
 
-## Painel administrativo
+⚽ Acertou o vencedor ou empate: **2 pontos**
 
-O administrador acessa `admin.html`.
+❌ Palpite incorreto: **0 ponto**
 
-No painel administrativo é possível:
+### Recursos exclusivos
 
-* Ver cadastros pendentes;
-* Aprovar participantes;
-* Gerar e copiar códigos de acesso;
-* Remover participantes;
-* Atualizar placares oficiais;
-* Acompanhar quantos palpites cada participante fez.
+📊 Ranking atualizado em tempo real
 
-### Código administrativo atual
+⚽ Jogos do dia
 
-```text
-ADMIN2026
-```
+🏅 Classificação dos grupos
 
-Altere esse código em `admin.js` antes de divulgar o projeto.
+📈 Histórico de pontuação
 
-## Configurar o Supabase
+👥 Palpites dos participantes após o fechamento
 
-1. Crie um projeto no Supabase.
-2. Abra o `SQL Editor`.
-3. Execute o conteúdo de `supabase-schema.sql`.
-4. Vá em `Project Settings` > `API`.
-5. Copie:
+📋 Tabela completa da Copa
 
-   * `Project URL`;
-   * `anon public key` ou `publishable key`.
-6. Atualize o arquivo `supabase-config.js`.
+### Importante
 
-### Exemplo
+Os palpites podem ser realizados até **5 minutos antes do início de cada partida**. Após esse prazo, o jogo será automaticamente bloqueado.
 
-```js
-window.BOLAO_SUPABASE_CONFIG = {
-  url: "https://seu-projeto.supabase.co",
-  anonKey: "sua-chave-publica"
-};
-```
+Não deixe para a última hora!
 
-## Publicar no GitHub Pages
+## Entre na disputa agora!
 
-1. Crie um repositório no GitHub.
-2. Envie os arquivos do projeto para a branch `main`.
-3. No GitHub, abra `Settings` > `Pages`.
-4. Em `Build and deployment`, escolha `Deploy from a branch`.
-5. Selecione:
+Cadastre-se e descubra quem realmente entende de futebol.
 
-   * Branch: `main`;
-   * Folder: `/root`.
-6. Salve.
-7. Abra a URL gerada pelo GitHub Pages.
-
-Depois de publicar uma nova versão, recarregue a página com `Ctrl + F5`.
-
-## Arquivos principais
-
-* `index.html`: página dos participantes;
-* `admin.html`: painel administrativo;
-* `app.js`: regras da tela dos participantes;
-* `admin.js`: regras do painel administrativo;
-* `data.js`: tabela de jogos;
-* `styles.css`: estilos e responsividade;
-* `supabase-state.js`: integração com o Supabase;
-* `supabase-config.js`: URL e chave pública do Supabase;
-* `supabase-schema.sql`: tabelas e políticas do Supabase.
-
-## Observação sobre segurança
-
-Este projeto é um MVP estático para grupo fechado. A chave pública do Supabase fica visível no navegador, o que é esperado em aplicações front-end. Não coloque chaves secretas neste repositório.
+**A Copa passa rápido. O campeão do bolão fica para a história.**
