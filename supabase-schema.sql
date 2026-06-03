@@ -114,3 +114,23 @@ on public.bolao_results
 for delete
 to anon
 using (true);
+
+create or replace function public.clear_bolao_result(target_match_id text, admin_code text)
+returns boolean
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if admin_code is distinct from 'ADMIN2026' then
+    raise exception 'Código de administrador inválido.';
+  end if;
+
+  delete from public.bolao_results
+  where match_id = target_match_id;
+
+  return true;
+end;
+$$;
+
+grant execute on function public.clear_bolao_result(text, text) to anon, authenticated;

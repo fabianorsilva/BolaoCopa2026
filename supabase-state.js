@@ -221,7 +221,7 @@
     return mapResult(row);
   }
 
-  async function clearResult(matchId) {
+  async function clearResult(matchId, adminCode) {
     const existing = await run((client) => client
       .from(TABLES.results)
       .select("match_id")
@@ -242,7 +242,20 @@
       .maybeSingle());
 
     if (stillExists) {
-      throw new Error("O resultado não foi apagado no Supabase. Execute novamente o SQL de permissão para results_delete na tabela bolao_results.");
+      await run((client) => client.rpc("clear_bolao_result", {
+        target_match_id: matchId,
+        admin_code: String(adminCode || "").trim().toUpperCase()
+      }));
+
+      const stillExistsAfterRpc = await run((client) => client
+        .from(TABLES.results)
+        .select("match_id")
+        .eq("match_id", matchId)
+        .maybeSingle());
+
+      if (stillExistsAfterRpc) {
+        throw new Error("O resultado não foi apagado no Supabase. Execute a função clear_bolao_result no SQL Editor.");
+      }
     }
 
     return true;
