@@ -1,0 +1,28 @@
+.DS_Store
+Thumbs.db
+*.log
+
+# Dependencias e builds locais
+node_modules/
+dist/
+build/
+.cache/
+
+# Configuracoes locais e segredos
+.env
+.env.*
+*.local
+
+# Ferramentas e testes locais
+test-results/
+playwright-report/
+coverage/
+screenshots/
+*.tmp
+
+# Supabase CLI local
+.supabase/
+
+# Painel administrativo local
+admin.html
+admin.js
