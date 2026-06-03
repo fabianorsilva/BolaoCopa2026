@@ -1,4 +1,5 @@
 :root {
+  /* Variáveis globais: centralizam cores, sombras e fonte do projeto. */
   color-scheme: dark;
   --bg: #07110f;
   --panel: rgba(11, 27, 24, 0.86);
@@ -15,10 +16,12 @@
 }
 
 * {
+  /* Faz padding e borda entrarem no cálculo da largura, evitando estouros de layout. */
   box-sizing: border-box;
 }
 
 body {
+  /* Fundo geral com imagem da Copa e camada escura para manter leitura do texto. */
   min-height: 100vh;
   margin: 0;
   color: var(--text);
@@ -38,10 +41,28 @@ button {
   cursor: pointer;
 }
 
+/* Estrutura base: limita largura do app e organiza cabeçalho/rodapé. */
 .app-shell {
   width: min(1440px, 100%);
   margin: 0 auto;
   padding: 24px;
+}
+
+.site-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 22px;
+  padding: 16px 2px 4px;
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.site-footer span:first-child {
+  color: var(--text);
 }
 
 .topbar {
@@ -176,6 +197,7 @@ button {
   font-size: 1.3rem;
 }
 
+/* Tela de entrada: apresentação do bolão, login e solicitação de cadastro. */
 .auth-panel {
   display: grid;
   min-height: calc(100vh - 132px);
@@ -199,6 +221,7 @@ button {
   min-height: 620px;
 }
 
+/* Painel administrativo: duas colunas para cadastros e resultados oficiais. */
 .admin-dashboard {
   display: grid;
   grid-template-columns: minmax(280px, 0.82fr) minmax(520px, 1.4fr);
@@ -443,6 +466,7 @@ button {
   display: none !important;
 }
 
+/* Dashboard do participante: grade principal com ranking, jogos, grupos e abas. */
 .dashboard {
   display: grid;
   grid-template-columns: minmax(260px, 0.9fr) minmax(360px, 1.25fr) minmax(280px, 0.95fr);
@@ -450,6 +474,7 @@ button {
   align-items: start;
 }
 
+/* Faixa superior do usuário logado com informações rápidas e próximo jogo. */
 .logged-hero {
   display: grid;
   grid-column: 1 / -1;
@@ -844,6 +869,7 @@ select:focus {
   font-size: 0.82rem;
 }
 
+/* Cards de jogos usados em palpites, tabela completa e palpites do grupo. */
 .match-card {
   padding: 14px;
   border: 1px solid var(--line);
@@ -1047,13 +1073,15 @@ select:focus {
   flex: 0 0 auto;
   place-items: center;
   position: relative;
-  width: 34px;
-  height: 24px;
+  width: 30px;
+  height: 30px;
   overflow: hidden;
-  border: 1px solid var(--line);
-  border-radius: 4px;
-  background: rgba(255, 255, 255, 0.09);
-  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.12);
+  border: 2px solid rgba(255, 255, 255, 0.75);
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.12);
+  box-shadow:
+    0 4px 12px rgba(0, 0, 0, 0.22),
+    inset 0 0 0 1px rgba(0, 0, 0, 0.18);
 }
 
 .flag img {
@@ -1062,6 +1090,7 @@ select:focus {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  border-radius: inherit;
 }
 
 .flag span {
@@ -1078,6 +1107,17 @@ select:focus {
 .flag.missing span,
 .flag-tbd span {
   display: inline-block;
+}
+
+.hero-match-line .flag {
+  width: 34px;
+  height: 34px;
+}
+
+.standings-row .flag,
+.score-row-teams .flag {
+  width: 28px;
+  height: 28px;
 }
 
 .flag-ar { background: linear-gradient(#75aadb 0 33%, #fff 33% 66%, #75aadb 66%); }
@@ -1241,21 +1281,30 @@ select:focus {
   font-size: 1.45rem;
 }
 
-.score-list {
+/* Cards da aba Minha pontuação: resumo jogo a jogo do participante. */
+.score-card-list {
   display: grid;
-  gap: 10px;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 12px;
   max-height: 430px;
   overflow: auto;
   padding-right: 4px;
   min-width: 0;
 }
 
-.score-row {
+.score-card {
   display: grid;
-  grid-template-columns: minmax(0, 1.2fr) minmax(150px, 0.8fr) auto;
   gap: 12px;
-  align-items: center;
-  padding: 12px;
+  padding: 13px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.07);
+}
+
+.score-card-game {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
 }
 
 .score-row-teams {
@@ -1271,6 +1320,37 @@ select:focus {
   text-align: right;
 }
 
+.score-card-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.score-card-metric {
+  display: grid;
+  align-content: start;
+  gap: 4px;
+  min-width: 0;
+  padding: 9px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.13);
+}
+
+.score-card-metric small {
+  color: var(--muted);
+  font-size: 0.68rem;
+  font-weight: 850;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.score-card-metric strong {
+  color: var(--text);
+  font-size: 0.96rem;
+  overflow-wrap: anywhere;
+}
+
 .score-row-detail {
   display: grid;
   gap: 3px;
@@ -1278,7 +1358,13 @@ select:focus {
   font-size: 0.82rem;
 }
 
-.score-row > strong {
+.score-row-meta {
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.score-card-points > strong {
   color: var(--gold);
   white-space: nowrap;
 }
@@ -1382,6 +1468,7 @@ select:focus {
   z-index: 20;
 }
 
+/* Tablet: reduz a quantidade de colunas para manter leitura confortável. */
 @media (max-width: 1120px) {
   .dashboard {
     grid-template-columns: 1fr 1fr;
@@ -1405,12 +1492,14 @@ select:focus {
   }
 }
 
+/* Celular: empilha painéis e controles para evitar conteúdo espremido. */
 @media (max-width: 760px) {
   .app-shell {
     padding: 16px;
   }
 
   .topbar,
+  .site-footer,
   .toolbar,
   .participant-form,
   .admin-login {
@@ -1486,7 +1575,11 @@ select:focus {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .score-row {
+  .score-card-list {
+    grid-template-columns: 1fr;
+  }
+
+  .score-card-metrics {
     grid-template-columns: 1fr;
   }
 

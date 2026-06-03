@@ -1,3 +1,5 @@
+// Tabela fixa da Copa 2026 usada como base do bolão.
+// Cada linha segue: data, horário de Brasília, fase/grupo, mandante, visitante, estádio e cidade.
 const WORLD_CUP_MATCHES = [
   ["2026-06-11","16:00","Grupo A","Mexico","South Africa","Estadio Banorte","Mexico City"],
   ["2026-06-11","23:00","Grupo A","South Korea","Czechia","Estadio Akron","Guadalajara"],
@@ -103,6 +105,7 @@ const WORLD_CUP_MATCHES = [
   ["2026-07-15","20:00","Semifinal","W99","W100","Mercedes-Benz Stadium","Atlanta"],
   ["2026-07-18","16:00","3o lugar","L101","L102","Hard Rock Stadium","Miami"],
   ["2026-07-19","16:00","Final","W101","W102","MetLife Stadium","New York / New Jersey"]
+// Transforma cada linha curta em objeto com nomes de propriedades mais claros para o restante do app.
 ].map((match, index) => ({
   id: `m${index + 1}`,
   number: index + 1,

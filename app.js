@@ -2,6 +2,7 @@ const STORAGE_KEY = "bolao-copa-2026-session";
 const GUESS_LOCK_MINUTES = 5;
 const BRASILIA_UTC_OFFSET_HOURS = -3;
 
+// Mapa entre nome interno da seleção e código usado para buscar a bandeira em SVG.
 const FLAG_BY_TEAM = {
   "Algeria": { code: "dz", label: "DZ" },
   "Argentina": { code: "ar", label: "AR" },
@@ -53,6 +54,7 @@ const FLAG_BY_TEAM = {
   "Uzbekistan": { code: "uz", label: "UZ" }
 };
 
+// Tradução dos nomes usados nos dados para nomes exibidos ao usuário em português.
 const TEAM_NAME_PT = {
   "Algeria": "Argélia",
   "Argentina": "Argentina",
@@ -104,6 +106,7 @@ const TEAM_NAME_PT = {
   "Uzbekistan": "Uzbequistão"
 };
 
+// Estado em memória da tela do participante. Ele é atualizado pelo Supabase e re-renderizado na UI.
 const state = {
   currentParticipantId: localStorage.getItem(STORAGE_KEY) || "",
   participants: [],
@@ -111,8 +114,10 @@ const state = {
   guesses: {}
 };
 
+// Cache dos elementos do DOM para evitar procurar os mesmos IDs várias vezes.
 const els = {};
 
+// Ponto de entrada da página: conecta eventos, carrega dados e desenha a primeira tela.
 document.addEventListener("DOMContentLoaded", async () => {
   bindElements();
   bindEvents();
@@ -191,6 +196,7 @@ function bindEvents() {
   els.groupSelect.addEventListener("change", renderGroupTeams);
 }
 
+// Busca dados online e mantém a tela funcional mesmo quando o Supabase falha.
 async function refreshState() {
   if (!window.BolaoSupabase?.isConfigured()) {
     const status = window.BolaoSupabase?.getConfigStatus?.();
@@ -217,6 +223,7 @@ function applySharedState(shared) {
   }
 }
 
+// Junta os jogos fixos de data.js com os resultados oficiais vindos do Supabase.
 function mergeResults(results = []) {
   const resultByMatch = new Map(results.map((result) => [result.matchId, result]));
   return WORLD_CUP_MATCHES.map((match) => {
@@ -236,6 +243,7 @@ function buildGuessMap(guesses = []) {
   }, {});
 }
 
+// Fluxo de cadastro: envia nome/e-mail para aprovação posterior do administrador.
 async function requestRegistration() {
   const name = els.registerName.value.trim();
   const email = els.registerEmail.value.trim();
@@ -272,6 +280,7 @@ async function requestRegistration() {
   }
 }
 
+// Fluxo de login: valida e-mail + código individual aprovado no painel admin.
 async function loginParticipant() {
   const email = els.loginEmail.value.trim();
   const code = els.loginCode.value.trim();
@@ -313,6 +322,7 @@ function activateTab(tabName) {
   document.querySelectorAll(".tab-page").forEach((page) => page.classList.toggle("active", page.id === `tab-${tabName}`));
 }
 
+// Renderização central: decide se mostra login ou dashboard e atualiza todos os painéis.
 function render() {
   const participant = getCurrentParticipant();
   const isLoggedIn = Boolean(participant);
@@ -356,6 +366,7 @@ function renderSelectors() {
   els.groupSelect.value = groups.some((group) => group.id === currentGroup) ? currentGroup : groups[0]?.id || "";
 }
 
+// Monta o destaque superior do usuário logado com próximo jogo, pontos e ranking.
 function renderLoggedHero() {
   const participant = getCurrentParticipant();
   if (!participant || !els.loggedHero) return;
@@ -418,6 +429,7 @@ function renderLeaderboard() {
     : `<li class="empty-state">Nenhum participante aprovado ainda.</li>`;
 }
 
+// Renderiza os jogos da data selecionada e os campos de palpite do participante.
 function renderDailyMatches() {
   const selectedDay = els.matchDaySelect.value || getDefaultMatchDay(getMatchDays());
   const matches = state.matches.filter((match) => getMatchDateBR(match) === selectedDay);
@@ -464,6 +476,7 @@ function renderDailyMatches() {
   });
 }
 
+// Salva um palpite no Supabase, respeitando o fechamento 5 minutos antes do jogo.
 async function saveGuess(participantId, matchId, home, away, button) {
   if (!participantId) {
     showToast("Entre no bolão para salvar seu palpite.");
@@ -511,6 +524,7 @@ function markButtonSaved(button, text = "Salvo") {
   }, 2200);
 }
 
+// Calcula e exibe a classificação de um grupo a partir dos resultados já registrados.
 function renderGroupTeams() {
   const groupId = els.groupSelect.value || "A";
   const group = getGroups().find((item) => item.id === groupId);
@@ -549,6 +563,7 @@ function renderGroupTeams() {
   `;
 }
 
+// Aba Minha pontuação: mostra somente os jogos do dia selecionado e os pontos jogo a jogo.
 function renderMyScore() {
   const participant = getCurrentParticipant();
   if (!participant) return;
@@ -570,7 +585,7 @@ function renderMyScore() {
       <article><strong>${trend}</strong><small>tendências corretas</small></article>
       <article><strong>${daySettledMatches.length}</strong><small>jogos com resultado</small></article>
     </div>
-    <div class="score-list">
+    <div class="score-card-list">
       ${dayMatches.map((match) => renderScoreRow(match, participant.id)).join("")}
     </div>
   `;
@@ -579,28 +594,46 @@ function renderMyScore() {
 function renderScoreRow(match, participantId) {
   const guess = state.guesses[participantId]?.[match.id] || { home: "", away: "" };
   const points = scoreGuess(guess, match.result);
-  const resultText = isCompleteScore(match.result) ? `${match.result.home} x ${match.result.away}` : "pendente";
-  const guessText = isCompleteScore(guess) ? `${guess.home} x ${guess.away}` : "sem palpite";
-  const status = isCompleteScore(match.result) ? `${points} pts` : "aguardando";
+  const hasResult = isCompleteScore(match.result);
+  const hasGuess = isCompleteScore(guess);
+  const resultText = hasResult ? `${match.result.home} x ${match.result.away}` : "Pendente";
+  const guessText = hasGuess ? `${guess.home} x ${guess.away}` : "Sem palpite";
+  const status = hasResult ? `${points} pts` : "Aguardando";
   const feedback = getGuessFeedback(guess, match.result);
 
   return `
-    <article class="score-row">
-      <div class="score-row-teams">
-        ${teamMarkup(match.home)}
-        <span>x</span>
-        ${teamMarkup(match.away)}
+    <article class="score-card">
+      <div class="score-card-game">
+        <div>
+          <span class="pill">Jogo ${match.number}</span>
+          <span class="score-row-meta">${formatMatchTimeBR(match)} BRT</span>
+        </div>
+        <div class="score-row-teams">
+          ${teamMarkup(match.home)}
+          <span>x</span>
+          ${teamMarkup(match.away)}
+        </div>
       </div>
-      <div class="score-row-detail">
-        <span>Palpite: ${guessText}</span>
-        <span>Resultado: ${resultText}</span>
+      <div class="score-card-metrics">
+      <div class="score-card-metric">
+        <small>Palpite</small>
+        <strong>${guessText}</strong>
+      </div>
+      <div class="score-card-metric">
+        <small>Resultado</small>
+        <strong>${resultText}</strong>
+      </div>
+      <div class="score-card-metric score-card-points">
+        <small>Pontuação</small>
+        <strong>${status}</strong>
         ${feedback ? `<span class="${feedback.className}">${feedback.label}</span>` : ""}
       </div>
-      <strong>${status}</strong>
+      </div>
     </article>
   `;
 }
 
+// Aba Palpites do grupo: só mostra palpites depois do encerramento do prazo daquele jogo.
 function renderGuesses() {
   const round = els.roundFilter.value;
   const matches = state.matches.filter((match) => round === "Todas" || match.round === round);
@@ -623,6 +656,7 @@ function renderGuesses() {
   });
 }
 
+// Aba Tabela: lista os jogos com informações extras, status e resultado quando existir.
 function renderResults() {
   els.resultList.innerHTML = state.matches.map((match) => {
     const result = match.result || { home: "", away: "" };
@@ -722,6 +756,7 @@ function renderGroupGuessCard(match) {
   `;
 }
 
+// Cria um card de jogo a partir do template HTML, evitando duplicação de marcação.
 function createMatchCard(match, score, mode) {
   const card = els.template.content.firstElementChild.cloneNode(true);
   const guessOpen = isGuessOpen(match);
@@ -750,6 +785,7 @@ function getCurrentParticipant() {
   return state.participants.find((participant) => participant.id === state.currentParticipantId);
 }
 
+// Ranking geral: soma pontos, placares exatos e tendências corretas para ordenar participantes.
 function getRanking() {
   return state.participants
     .map((participant) => {
@@ -786,6 +822,7 @@ function getParticipantPoints(participantId) {
   }, 0);
 }
 
+// Regra de pontuação: 5 pontos placar exato, 2 pontos tendência correta, 0 caso contrário.
 function scoreGuess(guess, result) {
   if (!isCompleteScore(guess) || !isCompleteScore(result)) return 0;
   if (Number(guess.home) === Number(result.home) && Number(guess.away) === Number(result.away)) return 5;
@@ -812,6 +849,7 @@ function getGuessStatusLabel(match, score) {
   return isCompleteScore(score) ? "palpite salvo" : "preencha o placar";
 }
 
+// Regras de prazo: palpite fica aberto até 5 minutos antes do início do jogo em Brasília.
 function isGuessOpen(match) {
   return Date.now() < getGuessDeadline(match).getTime();
 }
@@ -901,6 +939,7 @@ function getGroups() {
   }));
 }
 
+// Gera tabela de classificação de grupos com jogos, vitórias, saldo e pontos.
 function getGroupStandings(group) {
   const table = new Map(group.teams.map((team) => [team, {
     name: team,
@@ -957,6 +996,7 @@ function getGroupStandings(group) {
     );
 }
 
+// Exibe bandeira + nome traduzido da seleção em um bloco reutilizável.
 function teamMarkup(team) {
   const flag = getFlag(team);
   const flagImage = flag.code === "tbd"
@@ -1015,6 +1055,7 @@ function isValidEmail(value) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
 }
 
+// Sanitiza textos antes de injetar no HTML, reduzindo risco de marcação indesejada.
 function escapeHtml(value) {
   return String(value)
     .replace(/&/g, "&amp;")
@@ -1032,6 +1073,7 @@ function showAuthMessage(message) {
   els.authMessage.textContent = message;
 }
 
+// Mensagem temporária usada para confirmações, erros e feedback de ações.
 function showToast(message) {
   document.querySelector(".toast")?.remove();
   const toast = document.createElement("div");

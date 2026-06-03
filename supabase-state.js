@@ -1,4 +1,5 @@
 (function () {
+  // Nomes das tabelas no Supabase. Centralizar evita repetir strings pelo código.
   const TABLES = {
     participants: "bolao_participants",
     guesses: "bolao_guesses",
@@ -7,6 +8,7 @@
 
   let lastError = null;
 
+  // Lê as credenciais públicas definidas em supabase-config.js.
   function getConfig() {
     return window.BOLAO_SUPABASE_CONFIG || {};
   }
@@ -36,6 +38,7 @@
     return { ok: true, message: "Supabase configurado." };
   }
 
+  // Cria um cliente Supabase único para reutilizar durante a sessão.
   function getClient() {
     if (!isConfigured()) return null;
     if (!window.__bolaoSupabaseClient) {
@@ -65,6 +68,7 @@
     return String(email || "").trim().toLowerCase();
   }
 
+  // Converte linhas do banco para o formato usado pela aplicação.
   function mapParticipant(row) {
     return {
       id: row.id,
@@ -95,6 +99,7 @@
     };
   }
 
+  // Wrapper de segurança para padronizar erros das chamadas ao Supabase.
   async function run(operation) {
     const client = getClient();
     if (!client) throw new Error("Supabase não está configurado em supabase-config.js.");
@@ -109,6 +114,7 @@
     return response.data;
   }
 
+  // Carrega dados públicos necessários para ranking, jogos e palpites.
   async function loadPublicState() {
     const [participants, guesses, results] = await Promise.all([
       run((client) => client
@@ -131,6 +137,7 @@
     };
   }
 
+  // Lista todos os participantes para uso do painel administrativo.
   async function listParticipants() {
     const rows = await run((client) => client
       .from(TABLES.participants)
@@ -140,6 +147,7 @@
     return rows.map(mapParticipant);
   }
 
+  // Cria cadastro pendente; se o e-mail já existe, retorna o cadastro existente.
   async function registerParticipant(name, email) {
     const normalizedEmail = normalizeEmail(email);
     const existing = await run((client) => client
@@ -163,6 +171,7 @@
     return mapParticipant(row);
   }
 
+  // Login simples por e-mail e código gerado pelo administrador.
   async function loginParticipant(email, accessCode) {
     const row = await run((client) => client
       .from(TABLES.participants)
@@ -174,6 +183,7 @@
     return row ? mapParticipant(row) : null;
   }
 
+  // Aprova participante e grava o código individual no banco.
   async function approveParticipant(participantId, accessCode) {
     const row = await run((client) => client
       .from(TABLES.participants)
@@ -189,6 +199,7 @@
     return mapParticipant(row);
   }
 
+  // Remove participante; os palpites são removidos por cascade no banco.
   async function removeParticipant(participantId) {
     await run((client) => client
       .from(TABLES.participants)
@@ -196,6 +207,7 @@
       .eq("id", participantId));
   }
 
+  // Salva ou atualiza palpite usando upsert pela chave participante+jogo.
   async function saveGuess(participantId, matchId, home, away) {
     await run((client) => client
       .from(TABLES.guesses)
@@ -208,6 +220,7 @@
       }, { onConflict: "participant_id,match_id" }));
   }
 
+  // Salva ou atualiza resultado oficial do jogo.
   async function saveResult(matchId, home, away) {
     const row = await run((client) => client
       .from(TABLES.results)
@@ -223,6 +236,7 @@
     return mapResult(row);
   }
 
+  // Zera resultado oficial usando null, para manter histórico do jogo sem pontuar.
   async function clearResult(matchId, adminCode) {
     const existing = await run((client) => client
       .from(TABLES.results)
@@ -274,6 +288,7 @@
     return true;
   }
 
+  // Teste simples para confirmar se o projeto Supabase responde.
   async function testConnection() {
     try {
       await run((client) => client.from(TABLES.participants).select("id").limit(1));
@@ -283,6 +298,7 @@
     }
   }
 
+  // API exposta globalmente para app.js e admin.js.
   window.BolaoSupabase = {
     isConfigured,
     getConfigStatus,
