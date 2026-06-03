@@ -30,6 +30,10 @@ alter table public.bolao_participants enable row level security;
 alter table public.bolao_guesses enable row level security;
 alter table public.bolao_results enable row level security;
 
+grant select, insert, update, delete on public.bolao_participants to anon, authenticated;
+grant select, insert, update, delete on public.bolao_guesses to anon, authenticated;
+grant select, insert, update, delete on public.bolao_results to anon, authenticated;
+
 drop policy if exists "participants_select" on public.bolao_participants;
 drop policy if exists "participants_insert" on public.bolao_participants;
 drop policy if exists "participants_update" on public.bolao_participants;

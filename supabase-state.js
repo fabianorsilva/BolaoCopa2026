@@ -222,10 +222,30 @@
   }
 
   async function clearResult(matchId) {
+    const existing = await run((client) => client
+      .from(TABLES.results)
+      .select("match_id")
+      .eq("match_id", matchId)
+      .maybeSingle());
+
+    if (!existing) return false;
+
     await run((client) => client
       .from(TABLES.results)
       .delete()
       .eq("match_id", matchId));
+
+    const stillExists = await run((client) => client
+      .from(TABLES.results)
+      .select("match_id")
+      .eq("match_id", matchId)
+      .maybeSingle());
+
+    if (stillExists) {
+      throw new Error("O resultado não foi apagado no Supabase. Execute novamente o SQL de permissão para results_delete na tabela bolao_results.");
+    }
+
+    return true;
   }
 
   async function testConnection() {
