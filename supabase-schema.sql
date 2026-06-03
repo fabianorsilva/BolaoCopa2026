@@ -40,6 +40,7 @@ drop policy if exists "guesses_update" on public.bolao_guesses;
 drop policy if exists "results_select" on public.bolao_results;
 drop policy if exists "results_insert" on public.bolao_results;
 drop policy if exists "results_update" on public.bolao_results;
+drop policy if exists "results_delete" on public.bolao_results;
 
 create policy "participants_select"
 on public.bolao_participants
@@ -103,3 +104,9 @@ for update
 to anon
 using (true)
 with check (true);
+
+create policy "results_delete"
+on public.bolao_results
+for delete
+to anon
+using (true);
