@@ -93,6 +93,14 @@ button {
   letter-spacing: 0;
 }
 
+.topbar-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
 .topbar h1 {
   font-size: clamp(1.8rem, 2.7rem, 3.4rem);
 }

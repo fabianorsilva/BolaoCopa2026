@@ -21,10 +21,14 @@ create table if not exists public.bolao_guesses (
 
 create table if not exists public.bolao_results (
   match_id text primary key,
-  home_score integer not null check (home_score >= 0 and home_score <= 20),
-  away_score integer not null check (away_score >= 0 and away_score <= 20),
+  home_score integer check (home_score >= 0 and home_score <= 20),
+  away_score integer check (away_score >= 0 and away_score <= 20),
   updated_at timestamptz not null default now()
 );
+
+alter table public.bolao_results
+  alter column home_score drop not null,
+  alter column away_score drop not null;
 
 alter table public.bolao_participants enable row level security;
 alter table public.bolao_guesses enable row level security;
@@ -126,7 +130,11 @@ begin
     raise exception 'Código de administrador inválido.';
   end if;
 
-  delete from public.bolao_results
+  update public.bolao_results
+  set
+    home_score = null,
+    away_score = null,
+    updated_at = now()
   where match_id = target_match_id;
 
   return true;

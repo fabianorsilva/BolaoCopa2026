@@ -86,6 +86,8 @@
   }
 
   function mapResult(row) {
+    if (row.home_score === null || row.away_score === null) return null;
+
     return {
       matchId: row.match_id,
       home: row.home_score,
@@ -125,7 +127,7 @@
     return {
       participants: participants.map(mapParticipant),
       guesses: guesses.map(mapGuess),
-      results: results.map(mapResult)
+      results: results.map(mapResult).filter(Boolean)
     };
   }
 
@@ -230,18 +232,29 @@
 
     if (!existing) return false;
 
-    await run((client) => client
-      .from(TABLES.results)
-      .delete()
-      .eq("match_id", matchId));
+    try {
+      await run((client) => client
+        .from(TABLES.results)
+        .update({
+          home_score: null,
+          away_score: null,
+          updated_at: new Date().toISOString()
+        })
+        .eq("match_id", matchId));
+    } catch (error) {
+      await run((client) => client.rpc("clear_bolao_result", {
+        target_match_id: matchId,
+        admin_code: String(adminCode || "").trim().toUpperCase()
+      }));
+    }
 
     const stillExists = await run((client) => client
       .from(TABLES.results)
-      .select("match_id")
+      .select("match_id,home_score,away_score")
       .eq("match_id", matchId)
       .maybeSingle());
 
-    if (stillExists) {
+    if (stillExists && (stillExists.home_score !== null || stillExists.away_score !== null)) {
       await run((client) => client.rpc("clear_bolao_result", {
         target_match_id: matchId,
         admin_code: String(adminCode || "").trim().toUpperCase()
@@ -249,11 +262,11 @@
 
       const stillExistsAfterRpc = await run((client) => client
         .from(TABLES.results)
-        .select("match_id")
+        .select("match_id,home_score,away_score")
         .eq("match_id", matchId)
         .maybeSingle());
 
-      if (stillExistsAfterRpc) {
+      if (stillExistsAfterRpc && (stillExistsAfterRpc.home_score !== null || stillExistsAfterRpc.away_score !== null)) {
         throw new Error("O resultado não foi apagado no Supabase. Execute a função clear_bolao_result no SQL Editor.");
       }
     }
